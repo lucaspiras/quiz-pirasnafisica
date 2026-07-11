@@ -1,0 +1,1352 @@
+[
+  {
+    "text": "Numa cobrança de falta com efeito, a bola faz uma curva no ar. Esse desvio, causado pela rotação da bola, é conhecido como qual efeito?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Efeito Doppler"
+      },
+      {
+        "key": "B",
+        "label": "Efeito Magnus"
+      },
+      {
+        "key": "C",
+        "label": "Efeito Joule"
+      },
+      {
+        "key": "D",
+        "label": "Efeito Coriolis"
+      }
+    ],
+    "correct_key": "B",
+    "points": 10,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "O Lago Volta, um dos maiores lagos artificiais do mundo, encontra-se em qual país que disputou a Copa do Mundo de 2026?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Cabo Verde"
+      },
+      {
+        "key": "B",
+        "label": "Costa do Marfim"
+      },
+      {
+        "key": "C",
+        "label": "Senegal"
+      },
+      {
+        "key": "D",
+        "label": "Gana"
+      }
+    ],
+    "correct_key": "D",
+    "points": 10,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "O Haiti, uma das seleções participantes da Copa do Mundo de 2026, foi colonizado pela França e conquistou sua independência em 1804. Durante a guerra, Napoleão Bonaparte enviou tropas para combater os revolucionários haitianos. Entre esses soldados, muitos de uma determinada nacionalidade desertaram ou passaram a lutar ao lado dos haitianos, sendo posteriormente reconhecidos por seu apoio à independência. De qual país atual eram esses soldados?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Itália"
+      },
+      {
+        "key": "B",
+        "label": "Áustria"
+      },
+      {
+        "key": "C",
+        "label": "Polônia"
+      },
+      {
+        "key": "D",
+        "label": "Holanda"
+      }
+    ],
+    "correct_key": "C",
+    "points": 10,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "O Panamá marcou seu primeiro e histórico gol em Copas do Mundo em 2018, mesmo com a derrota. Contra qual seleção, que venceu por 6 a 1, esse gol foi marcado?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Inglaterra"
+      },
+      {
+        "key": "B",
+        "label": "Bélgica"
+      },
+      {
+        "key": "C",
+        "label": "Tunísia"
+      },
+      {
+        "key": "D",
+        "label": "Alemanha"
+      }
+    ],
+    "correct_key": "A",
+    "points": 10,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "O Senegal estreou em Copas em 2002, vencendo a França na abertura. O país também é mundialmente conhecido por dar nome a uma das mais famosas competições de automobilismo off-road. Qual é essa competição?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Rally dos Sertões"
+      },
+      {
+        "key": "B",
+        "label": "Baja 1000"
+      },
+      {
+        "key": "C",
+        "label": "Rally Paris-Dakar"
+      },
+      {
+        "key": "D",
+        "label": "Camel Trophy"
+      }
+    ],
+    "correct_key": "C",
+    "points": 10,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "Qual é a cor mais tradicional da camisa 1 da Itália, tetracampeã mundial que, no entanto, não se classificou para a Copa de 2026?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Verde"
+      },
+      {
+        "key": "B",
+        "label": "Azul"
+      },
+      {
+        "key": "C",
+        "label": "Vermelha"
+      },
+      {
+        "key": "D",
+        "label": "Branca"
+      }
+    ],
+    "correct_key": "B",
+    "points": 10,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "A Alemanha, tetracampeã mundial, participou da Copa do Mundo de 2026, tendo sido eliminada pelo Paraguai. O país também é conhecido por possuir trechos de rodovias onde não existe limite de velocidade para automóveis. Como essas rodovias são conhecidas?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Bundesroute"
+      },
+      {
+        "key": "B",
+        "label": "Autoblock"
+      },
+      {
+        "key": "C",
+        "label": "Autoweg"
+      },
+      {
+        "key": "D",
+        "label": "Autobahn"
+      }
+    ],
+    "correct_key": "D",
+    "points": 10,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "Qual seleção conquistou a primeira Copa do Mundo, em 1930, jogando em casa?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Brasil"
+      },
+      {
+        "key": "B",
+        "label": "Uruguai"
+      },
+      {
+        "key": "C",
+        "label": "Argentina"
+      },
+      {
+        "key": "D",
+        "label": "Itália"
+      }
+    ],
+    "correct_key": "B",
+    "points": 10,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "Inglaterra e Argentina têm uma rivalidade que vai além do futebol. Ela se intensificou no final do século XX devido a um conflito entre esses países. Qual o nome dessa guerra?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Guerra do Paraguai"
+      },
+      {
+        "key": "B",
+        "label": "Guerra das Malvinas"
+      },
+      {
+        "key": "C",
+        "label": "Guerra do Chaco"
+      },
+      {
+        "key": "D",
+        "label": "Segunda Guerra Mundial"
+      }
+    ],
+    "correct_key": "B",
+    "points": 10,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "Qual destes países de língua portuguesa NUNCA disputou uma Copa do Mundo?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Cabo Verde"
+      },
+      {
+        "key": "B",
+        "label": "Angola"
+      },
+      {
+        "key": "C",
+        "label": "Timor-Leste"
+      },
+      {
+        "key": "D",
+        "label": "Portugal"
+      }
+    ],
+    "correct_key": "C",
+    "points": 10,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "A Costa do Marfim teve um atacante lendário, artilheiro e ídolo do Chelsea, capitão da seleção em Copas. Quem é ele?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Didier Drogba"
+      },
+      {
+        "key": "B",
+        "label": "Yaya Touré"
+      },
+      {
+        "key": "C",
+        "label": "Samuel Eto'o"
+      },
+      {
+        "key": "D",
+        "label": "George Weah"
+      }
+    ],
+    "correct_key": "A",
+    "points": 20,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "O assassinato do arquiduque Francisco Ferdinando em Sarajevo é apontado como o estopim da 1ª Guerra Mundial. Hoje, Sarajevo é a capital de qual país que já disputou uma Copa do Mundo?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Sérvia"
+      },
+      {
+        "key": "B",
+        "label": "Bósnia e Herzegovina"
+      },
+      {
+        "key": "C",
+        "label": "Croácia"
+      },
+      {
+        "key": "D",
+        "label": "Áustria"
+      }
+    ],
+    "correct_key": "B",
+    "points": 20,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "A República Democrática do Congo disputou a Copa do Mundo de 1974 sob outro nome. Qual era esse nome?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Birmânia"
+      },
+      {
+        "key": "B",
+        "label": "Tanzânia"
+      },
+      {
+        "key": "C",
+        "label": "Zaire"
+      },
+      {
+        "key": "D",
+        "label": "Zanzíbar"
+      }
+    ],
+    "correct_key": "C",
+    "points": 20,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "Qual é a única seleção que disputou três finais de Copa do Mundo e nunca foi campeã?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Hungria"
+      },
+      {
+        "key": "B",
+        "label": "Holanda"
+      },
+      {
+        "key": "C",
+        "label": "Croácia"
+      },
+      {
+        "key": "D",
+        "label": "Bélgica"
+      }
+    ],
+    "correct_key": "B",
+    "points": 20,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "Um setor do estádio da Copa tem 529 lugares dispostos em um quadrado perfeito. Quantos lugares há em cada lado?",
+    "options": [
+      {
+        "key": "A",
+        "label": "21"
+      },
+      {
+        "key": "B",
+        "label": "23"
+      },
+      {
+        "key": "C",
+        "label": "27"
+      },
+      {
+        "key": "D",
+        "label": "29"
+      }
+    ],
+    "correct_key": "B",
+    "points": 20,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "Qual é o maior deserto do mundo?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Saara"
+      },
+      {
+        "key": "B",
+        "label": "Antártida"
+      },
+      {
+        "key": "C",
+        "label": "Deserto de Gobi"
+      },
+      {
+        "key": "D",
+        "label": "Deserto da Arábia"
+      }
+    ],
+    "correct_key": "B",
+    "points": 20,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "Qual alternativa lista APENAS seleções que já venceram a Copa do Mundo jogando em casa?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Brasil, Itália, Inglaterra e França"
+      },
+      {
+        "key": "B",
+        "label": "Alemanha, Inglaterra, Espanha e Uruguai"
+      },
+      {
+        "key": "C",
+        "label": "França, Argentina, Brasil e Itália"
+      },
+      {
+        "key": "D",
+        "label": "Uruguai, Itália, Argentina e França"
+      }
+    ],
+    "correct_key": "D",
+    "points": 20,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "Portugal foi um dos maiores fornecedores mundiais de um metal raro e estratégico na Segunda Guerra Mundial, cujo símbolo químico é W. Qual é esse elemento?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Vanádio"
+      },
+      {
+        "key": "B",
+        "label": "Tungstênio"
+      },
+      {
+        "key": "C",
+        "label": "Molibdênio"
+      },
+      {
+        "key": "D",
+        "label": "Bronze"
+      }
+    ],
+    "correct_key": "B",
+    "points": 20,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "A Copa de 1938, na França, teve uma seleção já classificada que não pôde disputar o torneio por causa da anexação de seu país por outra nação. Qual era essa seleção?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Tchecoslováquia"
+      },
+      {
+        "key": "B",
+        "label": "Áustria"
+      },
+      {
+        "key": "C",
+        "label": "Hungria"
+      },
+      {
+        "key": "D",
+        "label": "Iugoslávia"
+      }
+    ],
+    "correct_key": "B",
+    "points": 20,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "Qual jogador detém, desde 1958, o recorde de mais gols marcados em uma única edição da Copa do Mundo (13 gols)?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Pelé"
+      },
+      {
+        "key": "B",
+        "label": "Just Fontaine"
+      },
+      {
+        "key": "C",
+        "label": "Gerd Müller"
+      },
+      {
+        "key": "D",
+        "label": "Ronaldo"
+      }
+    ],
+    "correct_key": "B",
+    "points": 20,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "Qual seleção africana chegou às semifinais da Copa de 2022, feito inédito para a África?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Senegal"
+      },
+      {
+        "key": "B",
+        "label": "Gana"
+      },
+      {
+        "key": "C",
+        "label": "Marrocos"
+      },
+      {
+        "key": "D",
+        "label": "Camarões"
+      }
+    ],
+    "correct_key": "C",
+    "points": 40,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "Quem marcou o gol do título da Alemanha na final da Copa de 2014, na prorrogação contra a Argentina?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Thomas Müller"
+      },
+      {
+        "key": "B",
+        "label": "Mario Götze"
+      },
+      {
+        "key": "C",
+        "label": "Miroslav Klose"
+      },
+      {
+        "key": "D",
+        "label": "Toni Kroos"
+      }
+    ],
+    "correct_key": "B",
+    "points": 40,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "Na final da Copa de 1970 (Brasil 4×1 Itália), um gol coletivo antológico foi finalizado pelo capitão brasileiro. Quem marcou esse 4º gol?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Pelé"
+      },
+      {
+        "key": "B",
+        "label": "Jairzinho"
+      },
+      {
+        "key": "C",
+        "label": "Carlos Alberto"
+      },
+      {
+        "key": "D",
+        "label": "Tostão"
+      }
+    ],
+    "correct_key": "C",
+    "points": 40,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "A final da Copa de 1994 (Brasil × Itália) foi decidida nos pênaltis. Qual craque italiano isolou a cobrança decisiva, dando o título ao Brasil?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Roberto Baggio"
+      },
+      {
+        "key": "B",
+        "label": "Paolo Maldini"
+      },
+      {
+        "key": "C",
+        "label": "Franco Baresi"
+      },
+      {
+        "key": "D",
+        "label": "Giuseppe Signori"
+      }
+    ],
+    "correct_key": "A",
+    "points": 40,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "Na Copa de 1994, o Brasil venceu a Holanda por 3×2 nas quartas de final, jogo emblemático da campanha do tetra. Qual jogador marcou o 3º gol do Brasil na partida?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Cafu"
+      },
+      {
+        "key": "B",
+        "label": "Zinho"
+      },
+      {
+        "key": "C",
+        "label": "Branco"
+      },
+      {
+        "key": "D",
+        "label": "Romário"
+      }
+    ],
+    "correct_key": "C",
+    "points": 80,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Física"
+    ]
+  },
+  {
+    "text": "Os Estados Unidos, um dos países-sede da Copa de 2026, tiveram qual primeiro presidente?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Abraham Lincoln"
+      },
+      {
+        "key": "B",
+        "label": "George Washington"
+      },
+      {
+        "key": "C",
+        "label": "Thomas Jefferson"
+      },
+      {
+        "key": "D",
+        "label": "Benjamin Franklin"
+      }
+    ],
+    "correct_key": "B",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "A Austrália, presente em Copas do Mundo, tem qual cidade como capital?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Sydney"
+      },
+      {
+        "key": "B",
+        "label": "Melbourne"
+      },
+      {
+        "key": "C",
+        "label": "Canberra"
+      },
+      {
+        "key": "D",
+        "label": "Perth"
+      }
+    ],
+    "correct_key": "C",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "Por causa da Segunda Guerra Mundial, a Copa do Mundo deixou de ser disputada em dois anos de sua sequência. Quais foram esses anos?",
+    "options": [
+      {
+        "key": "A",
+        "label": "1940 e 1944"
+      },
+      {
+        "key": "B",
+        "label": "1942 e 1946"
+      },
+      {
+        "key": "C",
+        "label": "1944 e 1948"
+      },
+      {
+        "key": "D",
+        "label": "1938 e 1942"
+      }
+    ],
+    "correct_key": "B",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "A Colômbia teve, nos anos 1990, um camisa 10 icônico, de cabelo volumoso e grande visão de jogo. Quem era ele?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Carlos Valderrama"
+      },
+      {
+        "key": "B",
+        "label": "Faustino Asprilla"
+      },
+      {
+        "key": "C",
+        "label": "James Rodríguez"
+      },
+      {
+        "key": "D",
+        "label": "René Higuita"
+      }
+    ],
+    "correct_key": "A",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "A África do Sul sediou a Copa de 2010. Qual líder, ícone mundial da luta contra o apartheid, é o maior símbolo do país?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Nelson Mandela"
+      },
+      {
+        "key": "B",
+        "label": "Kofi Annan"
+      },
+      {
+        "key": "C",
+        "label": "Haile Selassie"
+      },
+      {
+        "key": "D",
+        "label": "Patrice Lumumba"
+      }
+    ],
+    "correct_key": "A",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "A França, uma das favoritas ao título, tem em sua história a Revolução Francesa, marco da queda da monarquia e do lema \"Liberdade, Igualdade e Fraternidade\". Em que ano ela começou?",
+    "options": [
+      {
+        "key": "A",
+        "label": "1789"
+      },
+      {
+        "key": "B",
+        "label": "1750"
+      },
+      {
+        "key": "C",
+        "label": "1804"
+      },
+      {
+        "key": "D",
+        "label": "1799"
+      }
+    ],
+    "correct_key": "A",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "Uma pesquisa de opinião foi feita com 240 torcedores. Destes, 15% afirmaram torcer para a Espanha. Quantos torcedores responderam que torcem para a Espanha?",
+    "options": [
+      {
+        "key": "A",
+        "label": "24"
+      },
+      {
+        "key": "B",
+        "label": "36"
+      },
+      {
+        "key": "C",
+        "label": "30"
+      },
+      {
+        "key": "D",
+        "label": "48"
+      }
+    ],
+    "correct_key": "B",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "Além da Holanda, qual destas seleções também já disputou finais de Copa do Mundo (em 1938 e 1954), mas nunca foi campeã?",
+    "options": [
+      {
+        "key": "A",
+        "label": "México"
+      },
+      {
+        "key": "B",
+        "label": "Hungria"
+      },
+      {
+        "key": "C",
+        "label": "Bélgica"
+      },
+      {
+        "key": "D",
+        "label": "Colômbia"
+      }
+    ],
+    "correct_key": "B",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "A colombiana Shakira embalou a Copa de 2010 com a música oficial do torneio. Qual é ela?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Estoy aquí"
+      },
+      {
+        "key": "B",
+        "label": "Waka Waka"
+      },
+      {
+        "key": "C",
+        "label": "Aquela do Piqué"
+      },
+      {
+        "key": "D",
+        "label": "Hips Don't Lie"
+      }
+    ],
+    "correct_key": "B",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "Em estádios de grande altitude, como em Quito (Equador), a bola tende a viajar mais rápido e mais longe. Qual é a principal razão física?",
+    "options": [
+      {
+        "key": "A",
+        "label": "O ar é menos denso"
+      },
+      {
+        "key": "B",
+        "label": "A gravidade é maior"
+      },
+      {
+        "key": "C",
+        "label": "O ar é mais úmido"
+      },
+      {
+        "key": "D",
+        "label": "A temperatura é maior"
+      }
+    ],
+    "correct_key": "A",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "A seleção do Equador manda seus jogos em uma das capitais mais altas do mundo, acima de 2.800 m de altitude. Qual é essa cidade?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Guaiaquil"
+      },
+      {
+        "key": "B",
+        "label": "Quito"
+      },
+      {
+        "key": "C",
+        "label": "Cuenca"
+      },
+      {
+        "key": "D",
+        "label": "Ambato"
+      }
+    ],
+    "correct_key": "B",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "A Suécia chegou à final da Copa de 1958, jogando em casa, mas perdeu para o Brasil. Qual jovem brasileiro, aos 17 anos, brilhou marcando dois gols nessa final?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Garrincha"
+      },
+      {
+        "key": "B",
+        "label": "Pelé"
+      },
+      {
+        "key": "C",
+        "label": "Vavá"
+      },
+      {
+        "key": "D",
+        "label": "Didi"
+      }
+    ],
+    "correct_key": "B",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "Quem foi o técnico campeão do mundo com a Espanha em 2010?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Vicente del Bosque"
+      },
+      {
+        "key": "B",
+        "label": "Luis Aragonés"
+      },
+      {
+        "key": "C",
+        "label": "Julen Lopetegui"
+      },
+      {
+        "key": "D",
+        "label": "Pep Guardiola"
+      }
+    ],
+    "correct_key": "A",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "A Argentina, atual campeã do mundo (2022), tem qual cidade como capital?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Buenos Aires"
+      },
+      {
+        "key": "B",
+        "label": "Córdoba"
+      },
+      {
+        "key": "C",
+        "label": "Rosário"
+      },
+      {
+        "key": "D",
+        "label": "Mendoza"
+      }
+    ],
+    "correct_key": "A",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "A Copa de 2010 foi a primeira disputada no continente africano. Em qual país ela aconteceu?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Nigéria"
+      },
+      {
+        "key": "B",
+        "label": "África do Sul"
+      },
+      {
+        "key": "C",
+        "label": "Egito"
+      },
+      {
+        "key": "D",
+        "label": "Gana"
+      }
+    ],
+    "correct_key": "B",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "O Paraguai teve um goleiro famoso por cobrar faltas e pênaltis, chegando a marcar gols. Quem foi esse arqueiro, presente em Copas do Mundo?",
+    "options": [
+      {
+        "key": "A",
+        "label": "José Luis Chilavert"
+      },
+      {
+        "key": "B",
+        "label": "Roberto Fernández"
+      },
+      {
+        "key": "C",
+        "label": "Justo Villar"
+      },
+      {
+        "key": "D",
+        "label": "Óscar Cardozo"
+      }
+    ],
+    "correct_key": "A",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "Gana, uma das potências do futebol africano, tem qual cidade como capital?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Lagos"
+      },
+      {
+        "key": "B",
+        "label": "Acra"
+      },
+      {
+        "key": "C",
+        "label": "Abidjan"
+      },
+      {
+        "key": "D",
+        "label": "Dakar"
+      }
+    ],
+    "correct_key": "B",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "O Haiti, que disputou a Copa de 1974, divide uma ilha do Caribe com qual outro país?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Cuba"
+      },
+      {
+        "key": "B",
+        "label": "Jamaica"
+      },
+      {
+        "key": "C",
+        "label": "República Dominicana"
+      },
+      {
+        "key": "D",
+        "label": "Porto Rico"
+      }
+    ],
+    "correct_key": "C",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "O Senegal estreou em Copas em 2002, vencendo a França na abertura. Qual é a capital do Senegal?",
+    "options": [
+      {
+        "key": "A",
+        "label": "Dakar"
+      },
+      {
+        "key": "B",
+        "label": "Acra"
+      },
+      {
+        "key": "C",
+        "label": "Lagos"
+      },
+      {
+        "key": "D",
+        "label": "Nairóbi"
+      }
+    ],
+    "correct_key": "A",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  },
+  {
+    "text": "A Alemanha, tetracampeã mundial, faz fronteira com vários países. Qual destes NÃO faz fronteira com ela?",
+    "options": [
+      {
+        "key": "A",
+        "label": "França"
+      },
+      {
+        "key": "B",
+        "label": "Polônia"
+      },
+      {
+        "key": "C",
+        "label": "Portugal"
+      },
+      {
+        "key": "D",
+        "label": "Áustria"
+      }
+    ],
+    "correct_key": "C",
+    "points": 100,
+    "media_url": null,
+    "media_type": null,
+    "question_seconds": null,
+    "tags": [
+      "Copa do Mundo",
+      "Cultura Geral"
+    ]
+  }
+]

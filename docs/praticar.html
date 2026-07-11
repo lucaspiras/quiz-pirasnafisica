@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Praticar · Quiz Piras na Física</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/icons/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1e2a78">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
+<link rel="stylesheet" href="assets/css/estilo.css">
+</head>
+<body>
+<div class="container">
+  <a class="brand" href="index.html"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+  <div id="tela"><div class="empty">Carregando quiz...</div></div>
+</div>
+
+<script type="module">
+import { chamarRpc } from './assets/js/supabase.js';
+import { lerSessao } from './assets/js/sessao.js';
+import { escaparHtml, mostrarToast, parametrosDaUrl } from './assets/js/ui.js';
+import { criarTemporizador } from './assets/js/temporizador.js';
+import { dispararConfete } from './assets/js/confete.js';
+
+const quizId = parametrosDaUrl().get('quiz');
+const sessao = lerSessao();
+const tela = document.getElementById('tela');
+const CHAVE_RECORDE = `quizpf_recorde_${quizId}`;
+
+let quiz = null;
+let ordem = [];          // índices das perguntas na ordem desta rodada
+let indice = 0;          // posição atual dentro de `ordem`
+let registro = [];       // { acertou, pontos, tempoMs, esgotou } por pergunta respondida
+let respondida = false;
+let temporizador = null;
+
+// Fallbacks defensivos: se o SQL de migração ainda não rodou, o JSON vem sem
+// tempos/bônus — a página segue funcionando com 20s por pergunta e sem bônus.
+function segundosDa(q) {
+  return q.question_seconds ?? quiz.default_question_seconds ?? 20;
+}
+function bonusAtivo() {
+  return Boolean(quiz.speed_bonus_enabled && quiz.speed_bonus_pct != null);
+}
+
+// Mesma fórmula do servidor (06_rpc_gameplay.sql, session_submit_answer):
+// pontos da pergunta + round(pontos * pct/100 * fração de tempo restante).
+function calcularPontos(q, acertou, tempoMs) {
+  if (!acertou) return 0;
+  let pontos = q.points;
+  if (bonusAtivo()) {
+    const totalMs = segundosDa(q) * 1000;
+    const responseMs = Math.min(Math.max(0, tempoMs), totalMs);
+    const fracao = Math.max(0, (totalMs - responseMs) / totalMs);
+    pontos += Math.round(q.points * (quiz.speed_bonus_pct / 100) * fracao);
+  }
+  return pontos;
+}
+
+function pararTemporizador() {
+  if (temporizador) { temporizador.parar(); temporizador = null; }
+}
+
+function embaralhar(array) {
+  const copia = [...array];
+  for (let i = copia.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
+}
+
+function renderMedia(q) {
+  if (!q.media_url) return '';
+  if (q.media_type === 'image') {
+    return `<div class="media-preview"><img src="${escaparHtml(q.media_url)}" alt=""></div>`;
+  }
+  if (q.media_type === 'youtube') {
+    const m = q.media_url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
+    return m ? `<div class="media-preview"><iframe src="https://www.youtube.com/embed/${m[1]}" allowfullscreen></iframe></div>` : '';
+  }
+  return '';
+}
+
+function renderDots() {
+  return `
+    <div class="progress-dots" aria-hidden="true">
+      ${ordem.map((_, i) => {
+        if (i < registro.length) return `<span class="${registro[i].acertou ? 'is-acerto' : 'is-erro'}"></span>`;
+        if (i === indice) return '<span class="is-atual"></span>';
+        return '<span></span>';
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderPergunta() {
+  const q = quiz.questions[ordem[indice]];
+  respondida = false;
+  pararTemporizador();
+
+  const opcoesHtml = q.options.map((op) => `
+    <button type="button" class="option-card" data-opcao="${op.key}" data-letra="${op.key}"
+      aria-label="Alternativa ${op.key}: ${escaparHtml(op.label)}">
+      <span class="badge">${op.key}</span><span>${escaparHtml(op.label)}</span>
+    </button>
+  `).join('');
+
+  tela.innerHTML = `
+    <div class="card">
+      <div class="row-between">
+        <span class="pill">Pergunta ${indice + 1} de ${ordem.length}</span>
+        <span class="hint">${(q.tags || []).map(escaparHtml).join(', ')}</span>
+      </div>
+      <div style="margin:12px 0">${renderDots()}</div>
+      <div class="timer-bar" id="barra-tempo" style="margin-bottom:14px"><span style="width:100%"></span></div>
+      <h2>${escaparHtml(q.text)}</h2>
+      ${renderMedia(q)}
+      <div class="option-grid">${opcoesHtml}</div>
+      <div id="area-proxima" style="margin-top:16px" aria-live="polite"></div>
+    </div>
+  `;
+
+  tela.querySelectorAll('[data-opcao]').forEach((el) => {
+    el.addEventListener('click', () => responder(el.dataset.opcao));
+  });
+
+  const segundos = segundosDa(q);
+  temporizador = criarTemporizador({
+    segundosTotais: segundos,
+    aoAtualizar: (restanteMs, totalMs) => {
+      const barra = document.getElementById('barra-tempo');
+      if (!barra) return;
+      barra.querySelector('span').style.width = `${Math.max(0, (restanteMs / totalMs) * 100)}%`;
+      barra.classList.toggle('is-urgente', restanteMs / totalMs <= 0.2);
+    },
+    aoTerminar: () => responder(null),
+  });
+  temporizador.calibrarLocal();
+  temporizador.iniciar();
+}
+
+function responder(escolha) {
+  if (respondida) return;
+  respondida = true;
+
+  const q = quiz.questions[ordem[indice]];
+  const tempoMs = temporizador ? Math.min(temporizador.decorridoMs(), segundosDa(q) * 1000) : 0;
+  pararTemporizador();
+
+  const esgotou = escolha === null;
+  const acertou = !esgotou && escolha === q.correct_key;
+  const pontos = calcularPontos(q, acertou, tempoMs);
+  registro.push({ acertou, pontos, tempoMs, esgotou });
+
+  tela.querySelectorAll('[data-opcao]').forEach((el) => {
+    el.disabled = true;
+    if (el.dataset.opcao === q.correct_key) el.classList.add('is-correct');
+    else if (el.dataset.opcao === escolha) el.classList.add('is-wrong');
+  });
+
+  const barra = document.getElementById('barra-tempo');
+  if (barra) barra.classList.remove('is-urgente');
+
+  let feedback;
+  if (acertou) feedback = `Certa resposta! 🎉 <span class="pontos-flutuante">+${pontos} pts</span>`;
+  else if (esgotou) feedback = 'Tempo esgotado! ⏱️ A resposta certa está marcada em verde.';
+  else feedback = 'Não foi dessa vez. A resposta certa está marcada em verde.';
+
+  const ultima = indice + 1 >= ordem.length;
+  document.getElementById('area-proxima').innerHTML = `
+    <p class="hint" style="font-size:0.95rem">${feedback}</p>
+    <button class="btn btn-primary btn-block" id="botao-proxima">${ultima ? 'Ver resultado' : 'Próxima pergunta'}</button>
+  `;
+  document.getElementById('botao-proxima').addEventListener('click', () => {
+    if (ultima) {
+      renderResultado();
+    } else {
+      indice += 1;
+      renderPergunta();
+    }
+  });
+  document.getElementById('botao-proxima').focus();
+}
+
+function formatarTempo(ms) {
+  const s = Math.round(ms / 1000);
+  const min = Math.floor(s / 60);
+  const seg = s % 60;
+  return min > 0 ? `${min}min ${String(seg).padStart(2, '0')}s` : `${seg}s`;
+}
+
+// Troféu e mensagem conforme o desempenho (% de acertos).
+function premiacao(pct) {
+  if (pct >= 90) return { trofeu: '🏆', titulo: 'Espetacular!', msg: 'Desempenho digno de pódio — você domina esse conteúdo.' };
+  if (pct >= 70) return { trofeu: '🥇', titulo: 'Mandou muito bem!', msg: 'Quase lá no topo — mais uma rodada e sai o gabarito perfeito.' };
+  if (pct >= 50) return { trofeu: '🥈', titulo: 'Bom trabalho!', msg: 'Você acertou mais da metade. Revise os erros e tente de novo.' };
+  if (pct >= 30) return { trofeu: '🥉', titulo: 'No caminho certo', msg: 'Já tem uma base — vale revisar o conteúdo e praticar de novo.' };
+  return { trofeu: '💪', titulo: 'Não desanime!', msg: 'Todo mundo começa de algum lugar. Revise o conteúdo e volte para tentar de novo.' };
+}
+
+function renderResultado() {
+  pararTemporizador();
+  const total = ordem.length;
+  const acertos = registro.filter((r) => r.acertou).length;
+  const pontosTotais = registro.reduce((soma, r) => soma + r.pontos, 0);
+  const tempoTotalMs = registro.reduce((soma, r) => soma + r.tempoMs, 0);
+  const pct = (acertos / total) * 100;
+  const premio = premiacao(pct);
+
+  // Recorde pessoal neste navegador
+  let recorde = null;
+  try { recorde = JSON.parse(localStorage.getItem(CHAVE_RECORDE)); } catch {}
+  const novoRecorde = !recorde || pontosTotais > recorde.pontos;
+  if (novoRecorde) {
+    try { localStorage.setItem(CHAVE_RECORDE, JSON.stringify({ pontos: pontosTotais, acertos, total })); } catch {}
+  }
+
+  tela.innerHTML = `
+    <div class="card" style="text-align:center">
+      <div class="trofeu-hero">${premio.trofeu}</div>
+      <h1>${premio.titulo}</h1>
+      <p>${premio.msg}</p>
+
+      <div class="stat-grid" style="margin-top:18px">
+        <div class="stat-tile"><span class="stat-valor">${pontosTotais}</span><span class="stat-rotulo">pontos</span></div>
+        <div class="stat-tile"><span class="stat-valor">${acertos}/${total}</span><span class="stat-rotulo">acertos</span></div>
+        <div class="stat-tile"><span class="stat-valor">${formatarTempo(tempoTotalMs)}</span><span class="stat-rotulo">tempo total</span></div>
+        <div class="stat-tile"><span class="stat-valor">${formatarTempo(tempoTotalMs / total)}</span><span class="stat-rotulo">média por pergunta</span></div>
+      </div>
+
+      <p class="hint" style="margin-top:14px">
+        ${novoRecorde
+          ? '🎉 Novo recorde pessoal neste navegador!'
+          : `Seu recorde neste navegador: <strong>${recorde.pontos} pts</strong> (${recorde.acertos}/${recorde.total})`}
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Pergunta a pergunta</h3>
+      <div style="overflow-x:auto">
+        <table class="tabela-resumo">
+          <thead><tr><th>#</th><th>Pergunta</th><th></th><th>Pontos</th><th>Tempo</th></tr></thead>
+          <tbody>
+            ${registro.map((r, i) => {
+              const q = quiz.questions[ordem[i]];
+              return `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td>${escaparHtml(q.text.length > 60 ? q.text.slice(0, 57) + '...' : q.text)}</td>
+                  <td>${r.acertou ? '✅' : (r.esgotou ? '⏱️' : '❌')}</td>
+                  <td class="num">${r.pontos}</td>
+                  <td class="num">${formatarTempo(r.tempoMs)}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="stack">
+        <button class="btn btn-primary btn-block" id="botao-de-novo">Praticar de novo (ordem embaralhada)</button>
+        <a class="btn btn-ghost btn-block" href="${sessao ? 'painel.html' : 'publicos.html'}">${sessao ? 'Voltar ao painel' : 'Escolher outro quiz'}</a>
+      </div>
+    </div>
+  `;
+
+  if (pct >= 70) dispararConfete();
+
+  document.getElementById('botao-de-novo').addEventListener('click', () => {
+    ordem = embaralhar(quiz.questions.map((_, i) => i));
+    indice = 0;
+    registro = [];
+    renderPergunta();
+  });
+}
+
+async function carregar() {
+  if (!quizId) {
+    tela.innerHTML = '<div class="card empty">Quiz não informado.</div>';
+    return;
+  }
+  try {
+    quiz = await chamarRpc('quiz_get_for_practice', {
+      p_quiz_id: quizId,
+      p_session_token: sessao?.sessionToken ?? null,
+    });
+  } catch (erro) {
+    tela.innerHTML = `<div class="card empty">${escaparHtml(erro.message)}</div>`;
+    return;
+  }
+  if (!quiz.questions.length) {
+    tela.innerHTML = '<div class="card empty">Este quiz não tem perguntas.</div>';
+    return;
+  }
+  ordem = quiz.questions.map((_, i) => i);
+  renderPergunta();
+}
+
+carregar();
+</script>
+</body>
+</html>

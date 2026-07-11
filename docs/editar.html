@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editar quiz · Quiz Piras na Física</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/icons/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1e2a78">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
+<link rel="stylesheet" href="assets/css/estilo.css">
+<style>
+  /* No celular, a linha de cada pergunta quebra em coluna para os botões caberem */
+  @media (max-width: 560px) {
+    #lista-perguntas .scoreboard li { flex-wrap: wrap; }
+    #lista-perguntas .scoreboard li > span:first-of-type { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <div class="row-between">
+    <a class="brand" href="painel.html" style="margin-bottom:0"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+    <a class="btn btn-ghost" href="painel.html">← Meus quizzes</a>
+  </div>
+
+  <div id="carregando" class="empty">Carregando quiz...</div>
+
+  <div id="conteudo" style="display:none">
+    <div class="card">
+      <div class="row-between">
+        <h1 id="titulo-exibicao" style="margin:0"></h1>
+        <a class="btn btn-ghost" id="link-praticar" href="#" target="_blank">Praticar sozinho</a>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <span class="pill" id="pill-visibilidade"></span>
+        <button class="btn btn-ghost" id="botao-tornar-publico" style="display:none">Pedir publicação no banco público</button>
+        <button class="btn btn-ghost" id="botao-tornar-privado" style="display:none">Tornar privado</button>
+      </div>
+      <p class="hint" id="hint-visibilidade" style="margin-top:8px"></p>
+    </div>
+
+    <div class="card">
+      <h3>Configurações</h3>
+      <form id="form-config">
+        <div class="field">
+          <label class="field-label" for="config-titulo">Título</label>
+          <input type="text" id="config-titulo" maxlength="120" required>
+        </div>
+        <div class="field">
+          <label class="field-label" for="config-descricao">Descrição</label>
+          <textarea id="config-descricao" maxlength="500"></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label" for="config-segundos">Tempo padrão por pergunta (segundos)</label>
+          <input type="number" id="config-segundos" min="5" max="300" required>
+          <p class="hint">Cada pergunta pode ter um tempo próprio; este é o valor usado quando você não define um.</p>
+        </div>
+        <div class="field">
+          <label class="row" style="font-weight:600">
+            <input type="checkbox" id="config-bonus-ativado" style="width:auto">
+            Bônus de velocidade (responder mais rápido vale mais pontos)
+          </label>
+          <p class="hint">Com o bônus ligado, quem acerta ganha os pontos da pergunta + um extra proporcional ao tempo que sobrou. Vale no jogo ao vivo e no modo praticar.</p>
+        </div>
+        <div class="field" id="campo-bonus-pct">
+          <label class="field-label" for="config-bonus-pct">Bônus máximo (% dos pontos da pergunta, para quem responder instantaneamente)</label>
+          <input type="number" id="config-bonus-pct" min="0" max="100" required>
+          <p class="hint">Exemplo: pergunta de 100 pontos com bônus de 50% — acerto imediato vale 150; acerto no último segundo vale 100.</p>
+        </div>
+        <button class="btn btn-primary" type="submit">Salvar configurações</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="row-between">
+        <h3 style="margin:0">Perguntas</h3>
+        <button class="btn btn-primary" id="botao-nova-pergunta">+ Adicionar pergunta</button>
+      </div>
+      <div id="lista-perguntas"></div>
+    </div>
+
+    <div class="card" id="card-form-pergunta" style="display:none">
+      <h3 id="titulo-form-pergunta">Nova pergunta</h3>
+      <form id="form-pergunta">
+        <div class="field">
+          <label class="field-label" for="pergunta-texto">Pergunta</label>
+          <textarea id="pergunta-texto" maxlength="500" required></textarea>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Mídia (opcional)</label>
+          <div class="spread">
+            <select id="pergunta-media-tipo" style="width:auto">
+              <option value="">Nenhuma</option>
+              <option value="image">Imagem</option>
+              <option value="youtube">Vídeo do YouTube</option>
+            </select>
+            <input type="url" id="pergunta-media-url" placeholder="https://..." style="flex:1; min-width:200px">
+          </div>
+          <div id="previa-media" style="margin-top:10px"></div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Alternativas (marque a correta)</label>
+          <div id="lista-opcoes" class="stack"></div>
+          <button type="button" class="btn btn-ghost" id="botao-add-opcao" style="margin-top:8px">+ Alternativa</button>
+        </div>
+
+        <div class="spread">
+          <div class="field" style="flex:1; min-width:160px">
+            <label class="field-label" for="pergunta-pontos">Pontos</label>
+            <input type="number" id="pergunta-pontos" min="1" required>
+          </div>
+          <div class="field" style="flex:1; min-width:160px">
+            <label class="field-label" for="pergunta-segundos">Tempo (segundos, opcional)</label>
+            <input type="number" id="pergunta-segundos" min="5" max="300" placeholder="Usar padrão do quiz">
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="pergunta-tags">Tags de tema (separadas por vírgula)</label>
+          <input type="text" id="pergunta-tags" list="lista-tags-sugeridas" placeholder="Ex.: Cinemática, Copa do Mundo">
+          <datalist id="lista-tags-sugeridas"></datalist>
+        </div>
+
+        <div class="row">
+          <button class="btn btn-primary" type="submit">Salvar pergunta</button>
+          <button class="btn btn-ghost" type="button" id="botao-cancelar-pergunta">Cancelar</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>Banco de perguntas público</h3>
+      <p>Busque perguntas já aprovadas de outros quizzes, marque as que quiser e importe todas de uma vez. Perguntas que você já importou não aparecem de novo.</p>
+      <div class="spread">
+        <input type="text" id="banco-busca" placeholder="Buscar por texto..." style="flex:1; min-width:200px">
+        <select id="banco-tag" style="width:auto"><option value="">Todas as tags</option></select>
+        <button class="btn btn-ghost" id="botao-banco-buscar">Buscar</button>
+      </div>
+      <div id="lista-banco" style="margin-top:12px"></div>
+      <div class="row" id="acoes-banco" style="margin-top:12px; display:none">
+        <button class="btn btn-primary" id="botao-banco-importar" disabled>Importar selecionadas</button>
+        <button class="btn btn-ghost" id="botao-banco-marcar-todas">Marcar todas</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Importar arquivo</h3>
+      <p>Envie um arquivo <code>.json</code> com uma lista de perguntas para adicionar todas de uma vez.</p>
+      <input type="file" id="arquivo-importar" accept="application/json,.json">
+      <p class="hint" style="margin-top:8px">
+        Formato: um array de objetos <code>{ text, options: [{key,label}], correct_key, points, media_url, media_type, question_seconds, tags }</code>.
+        Só <code>text</code>, <code>options</code> e <code>correct_key</code> são obrigatórios.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="row-between">
+        <h3 style="margin:0">Hospedar ao vivo</h3>
+        <button class="btn btn-danger" id="botao-excluir-quiz">Excluir quiz</button>
+      </div>
+      <p>Ao hospedar, você recebe um código de 6 dígitos para compartilhar com os participantes.</p>
+      <p class="hint">
+        Como funciona: você cai no <strong>painel de controle</strong> (link secreto, não compartilhe)
+        e de lá abre o <strong>telão</strong> para projetar. Os participantes entram pelo celular
+        com o código ou o QR code — sem instalar nada.
+      </p>
+      <button class="btn btn-primary btn-lg btn-block" id="botao-hospedar">Hospedar agora</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { chamarRpc } from './assets/js/supabase.js';
+import { exigirSessaoOuRedirecionar, limparSessao } from './assets/js/sessao.js';
+import { escaparHtml, mostrarToast, parametrosDaUrl, confirmarAcao } from './assets/js/ui.js';
+
+const sessao = exigirSessaoOuRedirecionar();
+const quizId = parametrosDaUrl().get('quiz');
+if (sessao && !quizId) window.location.href = 'painel.html';
+
+let quiz = null;
+let editandoPerguntaId = null;
+const LETRAS = ['A', 'B', 'C', 'D'];
+
+async function chamarQuizRpc(nome, extras = {}) {
+  try {
+    return await chamarRpc(nome, { p_session_token: sessao.sessionToken, p_quiz_id: quizId, ...extras });
+  } catch (erro) {
+    if (/sess[aã]o expirada/i.test(erro.message)) {
+      limparSessao();
+      window.location.href = 'login.html';
+    }
+    throw erro;
+  }
+}
+
+async function carregarQuiz() {
+  try {
+    quiz = await chamarQuizRpc('quiz_get_for_edit');
+  } catch (erro) {
+    document.getElementById('carregando').textContent = erro.message;
+    return;
+  }
+  document.getElementById('carregando').style.display = 'none';
+  document.getElementById('conteudo').style.display = 'block';
+  renderizarTudo();
+}
+
+const ROTULO_VISIBILIDADE = {
+  private: 'Privado',
+  pending: 'Aguardando revisão',
+  public: 'Público (no banco de perguntas)',
+};
+const DICA_VISIBILIDADE = {
+  private: 'Só você vê e edita este quiz.',
+  pending: 'Foi pedido para entrar no banco público — aguardando um administrador aprovar.',
+  public: 'Este quiz está no banco público: qualquer um pode praticá-lo e usar suas perguntas.',
+};
+
+function renderizarVisibilidade() {
+  document.getElementById('pill-visibilidade').textContent = ROTULO_VISIBILIDADE[quiz.visibility] || quiz.visibility;
+  document.getElementById('hint-visibilidade').textContent = DICA_VISIBILIDADE[quiz.visibility] || '';
+  document.getElementById('botao-tornar-publico').style.display = quiz.visibility === 'private' ? 'inline-flex' : 'none';
+  document.getElementById('botao-tornar-privado').style.display = quiz.visibility !== 'private' ? 'inline-flex' : 'none';
+  document.getElementById('link-praticar').href = `praticar.html?quiz=${quizId}`;
+}
+
+function renderizarTudo() {
+  document.getElementById('titulo-exibicao').textContent = quiz.title;
+  renderizarVisibilidade();
+
+  document.getElementById('config-titulo').value = quiz.title;
+  document.getElementById('config-descricao').value = quiz.description || '';
+  document.getElementById('config-segundos').value = quiz.default_question_seconds;
+  document.getElementById('config-bonus-ativado').checked = quiz.speed_bonus_enabled;
+  document.getElementById('config-bonus-pct').value = quiz.speed_bonus_pct;
+  atualizarVisibilidadeBonus();
+
+  renderizarListaPerguntas();
+}
+
+function atualizarVisibilidadeBonus() {
+  document.getElementById('campo-bonus-pct').style.display =
+    document.getElementById('config-bonus-ativado').checked ? 'block' : 'none';
+}
+document.getElementById('config-bonus-ativado').addEventListener('change', atualizarVisibilidadeBonus);
+
+function renderizarListaPerguntas() {
+  const container = document.getElementById('lista-perguntas');
+  const perguntas = [...quiz.questions].sort((a, b) => a.ord - b.ord);
+  if (perguntas.length === 0) {
+    container.innerHTML = '<p class="empty">Nenhuma pergunta ainda. Adicione a primeira acima.</p>';
+    return;
+  }
+  container.innerHTML = `
+    <ul class="scoreboard">
+      ${perguntas.map((p, i) => `
+        <li>
+          <span class="rank">${i + 1}</span>
+          <span style="flex:1">${escaparHtml(p.text)}</span>
+          <span class="pill">${p.points} pts</span>
+          <button class="btn btn-ghost" data-mover="${p.id}" data-direcao="-1" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button class="btn btn-ghost" data-mover="${p.id}" data-direcao="1" ${i === perguntas.length - 1 ? 'disabled' : ''}>↓</button>
+          <button class="btn btn-ghost" data-editar="${p.id}">Editar</button>
+          <button class="btn btn-danger" data-excluir="${p.id}">Excluir</button>
+        </li>
+      `).join('')}
+    </ul>
+  `;
+
+  container.querySelectorAll('[data-editar]').forEach((btn) => {
+    btn.addEventListener('click', () => abrirFormPergunta(quiz.questions.find((q) => q.id === btn.dataset.editar)));
+  });
+  container.querySelectorAll('[data-excluir]').forEach((btn) => {
+    btn.addEventListener('click', () => excluirPergunta(btn.dataset.excluir));
+  });
+  container.querySelectorAll('[data-mover]').forEach((btn) => {
+    btn.addEventListener('click', () => moverPergunta(btn.dataset.mover, Number(btn.dataset.direcao)));
+  });
+}
+
+function novaLinhaOpcao(letra, label = '', marcada = false) {
+  const linha = document.createElement('div');
+  linha.className = 'row';
+  linha.dataset.letra = letra;
+  linha.innerHTML = `
+    <input type="radio" name="opcao-correta" value="${letra}" ${marcada ? 'checked' : ''} style="width:auto">
+    <span class="badge">${letra}</span>
+    <input type="text" class="campo-opcao-texto" value="${escaparHtml(label)}" maxlength="200" placeholder="Texto da alternativa" style="flex:1" required>
+    <button type="button" class="btn btn-ghost botao-remover-opcao">Remover</button>
+  `;
+  linha.querySelector('.botao-remover-opcao').addEventListener('click', () => {
+    if (document.querySelectorAll('#lista-opcoes > div').length <= 2) {
+      mostrarToast('A pergunta precisa de pelo menos 2 alternativas.', 'error');
+      return;
+    }
+    linha.remove();
+    renumerarOpcoes();
+  });
+  return linha;
+}
+
+function renumerarOpcoes() {
+  const linhas = document.querySelectorAll('#lista-opcoes > div');
+  linhas.forEach((linha, i) => {
+    const letra = LETRAS[i];
+    linha.dataset.letra = letra;
+    linha.querySelector('.badge').textContent = letra;
+    linha.querySelector('input[type="radio"]').value = letra;
+  });
+}
+
+document.getElementById('botao-add-opcao').addEventListener('click', () => {
+  const lista = document.getElementById('lista-opcoes');
+  if (lista.children.length >= 4) {
+    mostrarToast('Máximo de 4 alternativas.', 'error');
+    return;
+  }
+  lista.appendChild(novaLinhaOpcao(LETRAS[lista.children.length]));
+});
+
+function atualizarPreviaMedia() {
+  const tipo = document.getElementById('pergunta-media-tipo').value;
+  const url = document.getElementById('pergunta-media-url').value.trim();
+  const previa = document.getElementById('previa-media');
+  if (!tipo || !url) {
+    previa.innerHTML = '';
+    return;
+  }
+  if (tipo === 'image') {
+    previa.innerHTML = `<div class="media-preview"><img src="${escaparHtml(url)}" alt=""></div>`;
+  } else if (tipo === 'youtube') {
+    const embed = urlEmbedYoutube(url);
+    previa.innerHTML = embed
+      ? `<div class="media-preview"><iframe src="${embed}" allowfullscreen></iframe></div>`
+      : '<p class="hint">Não consegui reconhecer esse link do YouTube.</p>';
+  }
+}
+document.getElementById('pergunta-media-tipo').addEventListener('change', atualizarPreviaMedia);
+document.getElementById('pergunta-media-url').addEventListener('input', atualizarPreviaMedia);
+
+function urlEmbedYoutube(url) {
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
+  return m ? `https://www.youtube.com/embed/${m[1]}` : null;
+}
+
+function abrirFormPergunta(pergunta = null) {
+  editandoPerguntaId = pergunta?.id ?? null;
+  document.getElementById('titulo-form-pergunta').textContent = pergunta ? 'Editar pergunta' : 'Nova pergunta';
+  document.getElementById('pergunta-texto').value = pergunta?.text ?? '';
+  document.getElementById('pergunta-pontos').value = pergunta?.points ?? 100;
+  document.getElementById('pergunta-segundos').value = pergunta?.question_seconds ?? '';
+  document.getElementById('pergunta-media-tipo').value = pergunta?.media_type ?? '';
+  document.getElementById('pergunta-media-url').value = pergunta?.media_url ?? '';
+  document.getElementById('pergunta-tags').value = (pergunta?.tags ?? []).join(', ');
+  atualizarPreviaMedia();
+
+  const lista = document.getElementById('lista-opcoes');
+  lista.innerHTML = '';
+  const opcoes = pergunta?.options ?? [{ key: 'A', label: '' }, { key: 'B', label: '' }];
+  opcoes.forEach((opt, i) => {
+    lista.appendChild(novaLinhaOpcao(LETRAS[i], opt.label, opt.key === pergunta?.correct_key));
+  });
+  if (!pergunta) lista.querySelector('input[type="radio"]').checked = true;
+
+  document.getElementById('card-form-pergunta').style.display = 'block';
+  document.getElementById('card-form-pergunta').scrollIntoView({ behavior: 'smooth' });
+}
+
+document.getElementById('botao-nova-pergunta').addEventListener('click', () => abrirFormPergunta());
+document.getElementById('botao-cancelar-pergunta').addEventListener('click', () => {
+  document.getElementById('card-form-pergunta').style.display = 'none';
+});
+
+document.getElementById('form-pergunta').addEventListener('submit', async (evento) => {
+  evento.preventDefault();
+  const texto = document.getElementById('pergunta-texto').value.trim();
+  const pontos = Number(document.getElementById('pergunta-pontos').value);
+  const segundosCampo = document.getElementById('pergunta-segundos').value;
+  const segundos = segundosCampo ? Number(segundosCampo) : null;
+  const mediaTipo = document.getElementById('pergunta-media-tipo').value || null;
+  const mediaUrl = document.getElementById('pergunta-media-url').value.trim() || null;
+  const tags = document.getElementById('pergunta-tags').value.split(',').map((t) => t.trim()).filter(Boolean);
+
+  const linhas = [...document.querySelectorAll('#lista-opcoes > div')];
+  const opcoes = linhas.map((linha) => ({
+    key: linha.dataset.letra,
+    label: linha.querySelector('.campo-opcao-texto').value.trim(),
+  }));
+  const correta = document.querySelector('input[name="opcao-correta"]:checked')?.value;
+
+  if (opcoes.some((o) => !o.label)) {
+    mostrarToast('Preencha o texto de todas as alternativas.', 'error');
+    return;
+  }
+  if (!correta) {
+    mostrarToast('Marque qual alternativa é a correta.', 'error');
+    return;
+  }
+
+  try {
+    await chamarQuizRpc('quiz_question_upsert', {
+      p_question_id: editandoPerguntaId,
+      p_ord: editandoPerguntaId
+        ? quiz.questions.find((q) => q.id === editandoPerguntaId).ord
+        : quiz.questions.length,
+      p_text: texto,
+      p_options: opcoes,
+      p_correct_key: correta,
+      p_points: pontos,
+      p_media_url: mediaUrl,
+      p_media_type: mediaUrl ? mediaTipo : null,
+      p_question_seconds: segundos,
+      p_tags: tags,
+    });
+    document.getElementById('card-form-pergunta').style.display = 'none';
+    await carregarQuiz();
+    mostrarToast('Pergunta salva.');
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+});
+
+async function excluirPergunta(id) {
+  const confirmado = await confirmarAcao({
+    titulo: 'Excluir pergunta',
+    mensagem: 'A pergunta será apagada deste quiz. Essa ação não pode ser desfeita.',
+    rotuloConfirmar: 'Excluir',
+    perigoso: true,
+  });
+  if (!confirmado) return;
+  try {
+    await chamarQuizRpc('quiz_question_delete', { p_question_id: id });
+    await carregarQuiz();
+    mostrarToast('Pergunta excluída.');
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+}
+
+async function moverPergunta(id, direcao) {
+  const ordenadas = [...quiz.questions].sort((a, b) => a.ord - b.ord).map((q) => q.id);
+  const i = ordenadas.indexOf(id);
+  const j = i + direcao;
+  if (j < 0 || j >= ordenadas.length) return;
+  [ordenadas[i], ordenadas[j]] = [ordenadas[j], ordenadas[i]];
+  try {
+    await chamarQuizRpc('quiz_question_reorder', { p_question_ids: ordenadas });
+    await carregarQuiz();
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+}
+
+document.getElementById('form-config').addEventListener('submit', async (evento) => {
+  evento.preventDefault();
+  const titulo = document.getElementById('config-titulo').value.trim();
+  try {
+    await chamarQuizRpc('quiz_update_settings', {
+      p_title: titulo,
+      p_description: document.getElementById('config-descricao').value.trim() || null,
+      p_speed_bonus_enabled: document.getElementById('config-bonus-ativado').checked,
+      p_speed_bonus_pct: Number(document.getElementById('config-bonus-pct').value),
+      p_default_question_seconds: Number(document.getElementById('config-segundos').value),
+    });
+    await carregarQuiz();
+    mostrarToast('Configurações salvas.');
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+});
+
+document.getElementById('botao-excluir-quiz').addEventListener('click', async () => {
+  const confirmado = await confirmarAcao({
+    titulo: 'Excluir quiz',
+    mensagem: `"${quiz.title}" e todas as suas perguntas serão apagados de vez. Essa ação não pode ser desfeita.`,
+    rotuloConfirmar: 'Excluir de vez',
+    perigoso: true,
+  });
+  if (!confirmado) return;
+  try {
+    await chamarQuizRpc('quiz_delete');
+    window.location.href = 'painel.html';
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+});
+
+document.getElementById('botao-hospedar').addEventListener('click', async () => {
+  if (!quiz.questions.length) {
+    mostrarToast('Adicione pelo menos uma pergunta antes de hospedar.', 'error');
+    return;
+  }
+  try {
+    const [sessaoJogo] = await chamarRpc('session_start', { p_session_token: sessao.sessionToken, p_quiz_id: quizId });
+    window.location.href = `admin.html?session=${sessaoJogo.session_id}&host=${encodeURIComponent(sessaoJogo.host_secret)}`;
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+});
+
+document.getElementById('botao-tornar-publico').addEventListener('click', async () => {
+  const confirmado = await confirmarAcao({
+    titulo: 'Publicar no banco público',
+    mensagem: 'Um administrador vai revisar o quiz. Se aprovado, qualquer pessoa poderá praticá-lo e importar suas perguntas. Você pode torná-lo privado de novo quando quiser.',
+    rotuloConfirmar: 'Pedir publicação',
+  });
+  if (!confirmado) return;
+  try {
+    await chamarQuizRpc('quiz_request_public');
+    await carregarQuiz();
+    mostrarToast('Pedido enviado. Aguardando revisão de um administrador.');
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+});
+
+document.getElementById('botao-tornar-privado').addEventListener('click', async () => {
+  try {
+    await chamarQuizRpc('quiz_make_private');
+    await carregarQuiz();
+    mostrarToast('Quiz voltou a ser privado.');
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+});
+
+async function carregarSugestoesDeTags() {
+  try {
+    const tags = await chamarRpc('question_bank_tags');
+    const opcoes = tags.map((t) => `<option value="${escaparHtml(t.tag)}">`).join('');
+    document.getElementById('lista-tags-sugeridas').innerHTML = opcoes;
+    document.getElementById('banco-tag').innerHTML =
+      '<option value="">Todas as tags</option>' + tags.map((t) => `<option value="${escaparHtml(t.tag)}">${escaparHtml(t.tag)}</option>`).join('');
+  } catch { /* sugestões são cosméticas, ignora falha */ }
+}
+
+function atualizarAcoesBanco() {
+  const marcadas = document.querySelectorAll('#lista-banco input[type="checkbox"]:checked').length;
+  const botao = document.getElementById('botao-banco-importar');
+  botao.disabled = marcadas === 0;
+  botao.textContent = marcadas > 0 ? `Importar selecionadas (${marcadas})` : 'Importar selecionadas';
+}
+
+async function buscarNoBanco() {
+  const busca = document.getElementById('banco-busca').value.trim();
+  const tag = document.getElementById('banco-tag').value;
+  const lista = document.getElementById('lista-banco');
+  const acoes = document.getElementById('acoes-banco');
+  lista.innerHTML = '<p class="empty">Buscando...</p>';
+  acoes.style.display = 'none';
+  try {
+    const resultados = await chamarRpc('question_bank_search', {
+      p_tags: tag ? [tag] : null,
+      p_search: busca || null,
+      p_exclude_quiz_id: quizId,
+    });
+    if (resultados.length === 0) {
+      lista.innerHTML = '<p class="empty">Nenhuma pergunta encontrada.</p>';
+      return;
+    }
+    lista.innerHTML = `
+      <ul class="scoreboard">
+        ${resultados.map((r) => `
+          <li>
+            <label class="row" style="flex:1; cursor:pointer">
+              <input type="checkbox" value="${r.question_id}" style="width:auto">
+              <span style="flex:1">
+                ${escaparHtml(r.text)}
+                <br><span class="hint">${escaparHtml(r.quiz_title)} — ${(r.tags || []).map(escaparHtml).join(', ')}</span>
+              </span>
+            </label>
+          </li>
+        `).join('')}
+      </ul>
+    `;
+    lista.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.addEventListener('change', atualizarAcoesBanco);
+    });
+    acoes.style.display = 'flex';
+    atualizarAcoesBanco();
+  } catch (erro) {
+    lista.innerHTML = '';
+    mostrarToast(erro.message, 'error');
+  }
+}
+document.getElementById('botao-banco-buscar').addEventListener('click', buscarNoBanco);
+
+document.getElementById('botao-banco-marcar-todas').addEventListener('click', () => {
+  document.querySelectorAll('#lista-banco input[type="checkbox"]').forEach((cb) => { cb.checked = true; });
+  atualizarAcoesBanco();
+});
+
+document.getElementById('botao-banco-importar').addEventListener('click', async (evento) => {
+  const ids = [...document.querySelectorAll('#lista-banco input[type="checkbox"]:checked')].map((cb) => cb.value);
+  if (ids.length === 0) return;
+  evento.target.disabled = true;
+  try {
+    const quantidade = await chamarQuizRpc('quiz_questions_import_from_bank', { p_source_question_ids: ids });
+    await carregarQuiz();
+    mostrarToast(`${quantidade} pergunta(s) importada(s).`);
+    await buscarNoBanco(); // as importadas somem da lista
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+    atualizarAcoesBanco();
+  }
+});
+
+document.getElementById('arquivo-importar').addEventListener('change', async (evento) => {
+  const arquivo = evento.target.files[0];
+  if (!arquivo) return;
+  try {
+    const texto = await arquivo.text();
+    const perguntas = JSON.parse(texto);
+    const quantidade = await chamarQuizRpc('quiz_questions_bulk_import', { p_questions: perguntas });
+    await carregarQuiz();
+    mostrarToast(`${quantidade} pergunta(s) importada(s).`);
+  } catch (erro) {
+    mostrarToast(erro instanceof SyntaxError ? 'Arquivo não é um JSON válido.' : erro.message, 'error');
+  } finally {
+    evento.target.value = '';
+  }
+});
+
+if (sessao && quizId) {
+  carregarQuiz();
+  carregarSugestoesDeTags();
+}
+</script>
+</body>
+</html>

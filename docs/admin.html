@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel do host · Quiz Piras na Física</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/icons/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1e2a78">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
+<link rel="stylesheet" href="assets/css/estilo.css">
+<style>
+  /* Controle com uma mão no celular: botão de ação preso ao rodapé */
+  @media (max-width: 560px) {
+    #area-acao {
+      position: sticky;
+      bottom: 12px;
+      z-index: 10;
+    }
+    #area-acao .btn { box-shadow: var(--shadow-pop); }
+  }
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <div class="row-between">
+    <a class="brand" href="index.html" style="margin-bottom:0"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+    <button class="btn btn-danger" id="botao-encerrar">Encerrar sessão</button>
+  </div>
+
+  <div id="tela"></div>
+</div>
+
+<script type="module">
+import { supabase, chamarRpc } from './assets/js/supabase.js';
+import { criarSincronizacaoAoVivo } from './assets/js/realtime.js';
+import { criarTemporizador } from './assets/js/temporizador.js';
+import { escaparHtml, mostrarToast, urlQrCode, copiarTexto, parametrosDaUrl, confirmarAcao } from './assets/js/ui.js';
+import { AVATAR_PADRAO } from './assets/js/avatar.js';
+
+const parametros = parametrosDaUrl();
+const sessionId = parametros.get('session');
+const hostSecret = parametros.get('host');
+if (!sessionId || !hostSecret) {
+  document.getElementById('tela').innerHTML = '<div class="card empty">Link de host inválido.</div>';
+  throw new Error('parametros ausentes');
+}
+
+const linkEntrar = `${window.location.origin}${window.location.pathname.replace('admin.html', 'entrar.html')}`;
+const linkTelao = `${window.location.origin}${window.location.pathname.replace('admin.html', 'telao.html')}?session=${sessionId}`;
+const tela = document.getElementById('tela');
+let perguntaIdAtual = undefined;
+let temporizador = null;
+let redirecionadoParaResultado = false;
+
+function pararTemporizador() {
+  if (temporizador) { temporizador.parar(); temporizador = null; }
+}
+
+function avatarDe(p) {
+  return escaparHtml(p.avatar_emoji || AVATAR_PADRAO);
+}
+
+async function chamarHostRpc(nome, extras = {}) {
+  try {
+    return await chamarRpc(nome, { p_session_id: sessionId, p_credential: hostSecret, ...extras });
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+    throw erro;
+  }
+}
+
+function renderLobby(sessao, participantes) {
+  tela.innerHTML = `
+    <div class="card" style="text-align:center">
+      <p class="hint">Código da sala</p>
+      <div class="pin-display">${sessao.pin}</div>
+      <p style="margin-top:14px">Participantes acessam <strong>${linkEntrar}</strong> e digitam o código.</p>
+      <img src="${urlQrCode(`${linkEntrar}?pin=${sessao.pin}`)}" alt="QR code para entrar" style="margin:14px auto; display:block; border-radius:12px">
+      <div class="spread" style="justify-content:center">
+        <button class="btn btn-ghost" id="botao-copiar-link">Copiar link de entrada</button>
+        <a class="btn btn-ghost" href="${linkTelao}" target="_blank">Abrir telão</a>
+      </div>
+      <p class="hint" style="margin-top:12px">
+        Abra o <strong>telão</strong> no projetor e controle o jogo por aqui.
+        Não feche esta aba: este link de host dá controle total da sessão — não o compartilhe.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Participantes (${participantes.filter((p) => !p.is_kicked).length})</h3>
+      ${participantes.length === 0
+        ? '<p class="empty pulso-suave">Ninguém entrou ainda. Compartilhe o código ou o QR code acima.</p>'
+        : `<ul class="scoreboard">${participantes.map((p) => `
+            <li>
+              <span class="avatar">${avatarDe(p)}</span>
+              <span>${escaparHtml(p.nickname)}</span>
+              ${p.is_kicked ? '<span class="pill" style="margin-left:auto">Removido</span>' : `<button class="btn btn-ghost" style="margin-left:auto" data-kick="${p.id}">Remover</button>`}
+            </li>
+          `).join('')}</ul>`
+      }
+    </div>
+
+    <div id="area-acao"><button class="btn btn-primary btn-lg btn-block" id="botao-iniciar">Iniciar quiz</button></div>
+  `;
+
+  document.getElementById('botao-copiar-link').addEventListener('click', () => copiarTexto(`${linkEntrar}?pin=${sessao.pin}`));
+  document.getElementById('botao-iniciar').addEventListener('click', async () => {
+    await chamarHostRpc('session_show_question', { p_question_index: 0 });
+  });
+  tela.querySelectorAll('[data-kick]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const confirmado = await confirmarAcao({
+        titulo: 'Remover participante',
+        mensagem: 'Essa pessoa sai do jogo e não pode voltar com o mesmo apelido. Remover mesmo assim?',
+        rotuloConfirmar: 'Remover',
+        perigoso: true,
+      });
+      if (!confirmado) return;
+      await chamarHostRpc('session_kick_participant', { p_participant_id: btn.dataset.kick });
+    });
+  });
+}
+
+function renderMedia(estado) {
+  if (!estado.q_media_url) return '';
+  if (estado.q_media_type === 'image') {
+    return `<div class="media-preview"><img src="${escaparHtml(estado.q_media_url)}" alt=""></div>`;
+  }
+  if (estado.q_media_type === 'youtube') {
+    const m = estado.q_media_url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
+    return m ? `<div class="media-preview"><iframe src="https://www.youtube.com/embed/${m[1]}" allowfullscreen></iframe></div>` : '';
+  }
+  return '';
+}
+
+async function renderPergunta(estado, participantes, respostaCount) {
+  const opcoes = estado.q_options || [];
+  let distribuicao = {};
+  let totalRespostas = estado.question_status === 'open' ? (respostaCount ?? 0) : 0;
+
+  if (estado.question_status === 'closed' || estado.question_status === 'revealed') {
+    try {
+      const respostas = await chamarRpc('session_current_answers', { p_session_id: sessionId });
+      totalRespostas = respostas.length;
+      for (const r of respostas) distribuicao[r.choice_key] = (distribuicao[r.choice_key] || 0) + 1;
+    } catch {}
+  }
+
+  const opcoesHtml = opcoes.map((op) => {
+    const classes = ['option-card'];
+    if (estado.question_status === 'revealed' && op.key === estado.reveal_correct_key) classes.push('is-correct');
+    const contagem = distribuicao[op.key] || 0;
+    const mostrarContagem = estado.question_status === 'closed' || estado.question_status === 'revealed';
+    return `
+      <div class="${classes.join(' ')}" data-letra="${op.key}">
+        <span class="badge">${op.key}</span><span style="flex:1">${escaparHtml(op.label)}</span>
+        ${mostrarContagem ? `<span class="pill">${contagem}</span>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  const acoes = {
+    shown: '<button class="btn btn-primary btn-lg btn-block" id="botao-acao" data-acao="abrir">Abrir tempo</button>',
+    open: '<button class="btn btn-primary btn-lg btn-block" id="botao-acao" data-acao="fechar">Fechar tempo</button>',
+    closed: '<button class="btn btn-primary btn-lg btn-block" id="botao-acao" data-acao="revelar">Revelar resposta</button>',
+    revealed: `<button class="btn btn-primary btn-lg btn-block" id="botao-acao" data-acao="proxima">${
+      (estado.q_index ?? 0) + 1 >= (estado.q_total ?? 1) ? 'Ver resultado final' : 'Próxima pergunta'
+    }</button>`,
+  }[estado.question_status] || '';
+
+  tela.innerHTML = `
+    <div class="card">
+      <div class="row-between">
+        <span class="pill">Pergunta ${(estado.q_index ?? 0) + 1} de ${estado.q_total ?? '?'}</span>
+        <span class="hint">${totalRespostas} resposta(s) · ${participantes.filter((p) => !p.is_kicked).length} participante(s)</span>
+      </div>
+      ${estado.question_status === 'open' ? '<div class="timer-bar" id="barra-tempo" style="margin:14px 0"><span style="width:100%"></span></div>' : ''}
+      <h2>${escaparHtml(estado.q_text)}</h2>
+      ${renderMedia(estado)}
+      <div class="option-grid">${opcoesHtml}</div>
+      <div id="area-acao" style="margin-top:16px">${acoes}</div>
+    </div>
+  `;
+
+  const botaoAcao = document.getElementById('botao-acao');
+  if (botaoAcao) {
+    botaoAcao.addEventListener('click', async () => {
+      botaoAcao.disabled = true;
+      const acao = botaoAcao.dataset.acao;
+      try {
+        if (acao === 'abrir') await chamarHostRpc('session_open_timer');
+        else if (acao === 'fechar') await chamarHostRpc('session_close_timer');
+        else if (acao === 'revelar') await chamarHostRpc('session_reveal');
+        else if (acao === 'proxima') {
+          const [resultado] = await chamarRpc('session_next_or_finish', { p_session_id: sessionId, p_credential: hostSecret });
+          if (resultado.finished) {
+            redirecionadoParaResultado = true;
+            window.location.href = `resultado.html?session=${sessionId}`;
+          }
+        }
+      } finally {
+        botaoAcao.disabled = false;
+      }
+    });
+  }
+
+  if (estado.question_status === 'open' && !temporizador) {
+    temporizador = criarTemporizador({
+      segundosTotais: estado.q_seconds,
+      aoAtualizar: (restanteMs, totalMs) => {
+        const barra = document.getElementById('barra-tempo');
+        if (!barra) return;
+        barra.querySelector('span').style.width = `${Math.max(0, (restanteMs / totalMs) * 100)}%`;
+        barra.classList.toggle('is-urgente', restanteMs / totalMs <= 0.2);
+      },
+    });
+    const calibrado = await temporizador.calibrar(sessionId);
+    if (calibrado) temporizador.iniciar();
+  }
+}
+
+async function renderizar({ estado, sessao, participantes, respostaCount }) {
+  if (!estado || !sessao || redirecionadoParaResultado) return;
+
+  if (sessao.status === 'finished') {
+    redirecionadoParaResultado = true;
+    window.location.href = `resultado.html?session=${sessionId}`;
+    return;
+  }
+
+  if (estado.current_question_id !== perguntaIdAtual) {
+    perguntaIdAtual = estado.current_question_id;
+    pararTemporizador();
+  }
+
+  if (sessao.status === 'lobby') {
+    renderLobby(sessao, participantes);
+  } else {
+    await renderPergunta(estado, participantes, respostaCount);
+  }
+}
+
+document.getElementById('botao-encerrar').addEventListener('click', async () => {
+  const confirmado = await confirmarAcao({
+    titulo: 'Encerrar sessão',
+    mensagem: 'O jogo termina agora para todos os participantes e o placar atual vira o resultado final.',
+    rotuloConfirmar: 'Encerrar para todos',
+    perigoso: true,
+  });
+  if (!confirmado) return;
+  await chamarHostRpc('session_end');
+  window.location.href = `resultado.html?session=${sessionId}`;
+});
+
+const sync = criarSincronizacaoAoVivo({
+  nomeCanal: `quiz-admin-${sessionId}`,
+  tabelas: [
+    { nome: 'session_state', coluna: 'session_id', valor: sessionId },
+    { nome: 'game_sessions', coluna: 'id', valor: sessionId },
+    { nome: 'participants', coluna: 'session_id', valor: sessionId },
+  ],
+  buscar: async () => {
+    const [{ data: estado }, { data: sessao }, { data: participantes }] = await Promise.all([
+      supabase.from('session_state').select('*').eq('session_id', sessionId).maybeSingle(),
+      supabase.from('game_sessions').select('*').eq('id', sessionId).maybeSingle(),
+      supabase.from('participants').select('*').eq('session_id', sessionId).order('joined_at'),
+    ]);
+    let respostaCount = null;
+    if (estado?.question_status === 'open') {
+      try { respostaCount = await chamarRpc('session_current_answer_count', { p_session_id: sessionId }); } catch {}
+    }
+    return { estado, sessao, participantes: participantes || [], respostaCount };
+  },
+  atualizar: renderizar,
+  intervaloPollMs: 2000,
+});
+
+sync.iniciar();
+</script>
+</body>
+</html>

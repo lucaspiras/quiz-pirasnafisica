@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jogando · Quiz Piras na Física</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/icons/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1e2a78">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
+<link rel="stylesheet" href="assets/css/estilo.css">
+</head>
+<body>
+<div class="container">
+  <div class="row-between" style="margin-bottom:16px">
+    <span class="pill" id="pill-apelido"></span>
+    <span class="pill" id="pill-pontos" style="display:none"></span>
+  </div>
+
+  <div id="tela" aria-live="polite"></div>
+</div>
+
+<script type="module">
+import { supabase, chamarRpc } from './assets/js/supabase.js';
+import { lerParticipante } from './assets/js/participante.js';
+import { criarSincronizacaoAoVivo } from './assets/js/realtime.js';
+import { criarTemporizador } from './assets/js/temporizador.js';
+import { escaparHtml, mostrarToast, parametrosDaUrl } from './assets/js/ui.js';
+import { AVATAR_PADRAO } from './assets/js/avatar.js';
+
+const sessionId = parametrosDaUrl().get('session');
+const participante = sessionId ? lerParticipante(sessionId) : null;
+if (!sessionId || !participante) {
+  window.location.href = `entrar.html`;
+}
+
+document.getElementById('pill-apelido').textContent =
+  `${participante?.avatarEmoji || AVATAR_PADRAO} ${participante?.nickname ?? ''}`;
+
+const tela = document.getElementById('tela');
+let perguntaIdAtual = null;
+let minhaResposta = null;
+let temporizador = null;
+let redirecionado = false;
+let pontosConhecidos = null; // null até a primeira leitura do placar
+let deltaAnunciadoPara = null;
+
+function embedYoutube(url) {
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
+  return m ? `https://www.youtube.com/embed/${m[1]}` : null;
+}
+
+function pararTemporizador() {
+  if (temporizador) {
+    temporizador.parar();
+    temporizador = null;
+  }
+}
+
+async function enviarResposta(chave) {
+  minhaResposta = chave;
+  renderizarOpcoesComSelecao();
+  try {
+    await chamarRpc('session_submit_answer', {
+      p_session_id: sessionId,
+      p_participant_id: participante.participantId,
+      p_join_secret: participante.joinSecret,
+      p_question_id: perguntaIdAtual,
+      p_choice_key: chave,
+    });
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+}
+
+function renderizarOpcoesComSelecao() {
+  tela.querySelectorAll('[data-opcao]').forEach((el) => {
+    el.classList.toggle('is-selected', el.dataset.opcao === minhaResposta);
+  });
+}
+
+function renderMedia(estado) {
+  if (!estado.q_media_url) return '';
+  if (estado.q_media_type === 'image') {
+    return `<div class="media-preview"><img src="${escaparHtml(estado.q_media_url)}" alt=""></div>`;
+  }
+  if (estado.q_media_type === 'youtube') {
+    const embed = embedYoutube(estado.q_media_url);
+    return embed ? `<div class="media-preview"><iframe src="${embed}" allowfullscreen></iframe></div>` : '';
+  }
+  return '';
+}
+
+async function renderizar({ estado, sessao }) {
+  if (!estado || !sessao) return;
+
+  if (sessao.status === 'finished' && !redirecionado) {
+    redirecionado = true;
+    window.location.href = `resultado.html?session=${sessionId}`;
+    return;
+  }
+
+  if (estado.current_question_id !== perguntaIdAtual) {
+    perguntaIdAtual = estado.current_question_id;
+    minhaResposta = null;
+    pararTemporizador();
+    if (perguntaIdAtual) {
+      try {
+        minhaResposta = await chamarRpc('participant_my_answer', {
+          p_session_id: sessionId,
+          p_participant_id: participante.participantId,
+          p_join_secret: participante.joinSecret,
+          p_question_id: perguntaIdAtual,
+        });
+      } catch { /* ignora, segue sem resposta restaurada */ }
+    }
+  }
+
+  if (!estado.current_question_id) {
+    tela.innerHTML = `
+      <div class="card empty">
+        <span class="empty-icone">${escaparHtml(participante?.avatarEmoji || '🎉')}</span>
+        <h2>Você está na sala!</h2>
+        <p>Aguardando o apresentador iniciar a primeira pergunta...</p>
+      </div>
+    `;
+    return;
+  }
+
+  const badge = (letra) => `<span class="badge">${letra}</span>`;
+  const opcoesHtml = (estado.q_options || []).map((op) => {
+    const classes = ['option-card'];
+    if (estado.question_status === 'revealed') {
+      if (op.key === estado.reveal_correct_key) classes.push('is-correct');
+      else if (op.key === minhaResposta) classes.push('is-wrong');
+    } else if (op.key === minhaResposta) {
+      classes.push('is-selected');
+    }
+    const desabilitada = estado.question_status !== 'open';
+    return `
+      <button type="button" class="${classes.join(' ')}" data-opcao="${op.key}" data-letra="${op.key}"
+        aria-label="Alternativa ${op.key}: ${escaparHtml(op.label)}" ${desabilitada ? 'disabled' : ''}>
+        ${badge(op.key)}<span>${escaparHtml(op.label)}</span>
+      </button>
+    `;
+  }).join('');
+
+  const acertou = estado.question_status === 'revealed' && minhaResposta === estado.reveal_correct_key;
+  const statusTexto = {
+    shown: 'Prepare-se...',
+    open: 'Responda!',
+    closed: 'Tempo encerrado. Aguardando revelação...',
+    revealed: acertou ? 'Você acertou! 🎉' : (minhaResposta ? 'Não foi dessa vez.' : 'Resposta revelada.'),
+  }[estado.question_status] || '';
+
+  tela.innerHTML = `
+    <div class="card">
+      <div class="row-between">
+        <span class="pill">Pergunta ${(estado.q_index ?? 0) + 1} de ${estado.q_total ?? '?'}</span>
+        <span class="hint" id="status-pergunta">${statusTexto}</span>
+      </div>
+      ${estado.question_status === 'open' ? '<div class="timer-bar" id="barra-tempo" style="margin:14px 0"><span style="width:100%"></span></div>' : ''}
+      <h2>${escaparHtml(estado.q_text)}</h2>
+      ${renderMedia(estado)}
+      <div class="option-grid">${opcoesHtml}</div>
+    </div>
+  `;
+
+  tela.querySelectorAll('[data-opcao]').forEach((el) => {
+    el.addEventListener('click', () => enviarResposta(el.dataset.opcao));
+  });
+
+  if (estado.question_status === 'open' && !temporizador) {
+    temporizador = criarTemporizador({
+      segundosTotais: estado.q_seconds,
+      aoAtualizar: (restanteMs, totalMs) => {
+        const barra = document.getElementById('barra-tempo');
+        if (!barra) return;
+        barra.querySelector('span').style.width = `${Math.max(0, (restanteMs / totalMs) * 100)}%`;
+        barra.classList.toggle('is-urgente', restanteMs / totalMs <= 0.2);
+      },
+    });
+    const calibrado = await temporizador.calibrar(sessionId);
+    if (calibrado) temporizador.iniciar();
+  }
+
+  try {
+    const placar = await chamarRpc('session_scoreboard', { p_session_id: sessionId });
+    const meu = placar.find((p) => p.participant_id === participante.participantId);
+    if (meu) {
+      const pill = document.getElementById('pill-pontos');
+      pill.style.display = 'inline-flex';
+      pill.textContent = `${meu.total_points} pts`;
+
+      // Comemora os pontos ganhos na rodada, uma vez por pergunta revelada.
+      // Na primeira leitura (inclusive após um F5) só memoriza, sem anunciar.
+      if (pontosConhecidos === null) {
+        pontosConhecidos = meu.total_points;
+        deltaAnunciadoPara = estado.question_status === 'revealed' ? perguntaIdAtual : null;
+      } else if (estado.question_status === 'revealed') {
+        const delta = meu.total_points - pontosConhecidos;
+        if (delta > 0 && deltaAnunciadoPara !== perguntaIdAtual) {
+          deltaAnunciadoPara = perguntaIdAtual;
+          const status = document.getElementById('status-pergunta');
+          if (status) status.innerHTML = `${escaparHtml(statusTexto)} <span class="pontos-flutuante">+${delta} pts</span>`;
+        }
+        pontosConhecidos = meu.total_points;
+      }
+    }
+  } catch { /* placar é cosmético, ignora falha pontual */ }
+}
+
+const sync = criarSincronizacaoAoVivo({
+  nomeCanal: `quiz-jogar-${sessionId}`,
+  tabelas: [
+    { nome: 'session_state', coluna: 'session_id', valor: sessionId },
+    { nome: 'game_sessions', coluna: 'id', valor: sessionId },
+  ],
+  buscar: async () => {
+    const [{ data: estado }, { data: sessao }] = await Promise.all([
+      supabase.from('session_state').select('*').eq('session_id', sessionId).maybeSingle(),
+      supabase.from('game_sessions').select('*').eq('id', sessionId).maybeSingle(),
+    ]);
+    return { estado, sessao };
+  },
+  atualizar: renderizar,
+  intervaloPollMs: 3000,
+});
+
+if (sessionId && participante) sync.iniciar();
+</script>
+</body>
+</html>

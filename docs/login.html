@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrar · Quiz Piras na Física</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/icons/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1e2a78">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
+<link rel="stylesheet" href="assets/css/estilo.css">
+</head>
+<body>
+<div class="container">
+  <a class="brand" href="index.html"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:16px">
+      <button class="btn btn-ghost" id="aba-entrar" style="flex:1">Entrar</button>
+      <button class="btn btn-ghost" id="aba-cadastro" style="flex:1">Criar conta</button>
+    </div>
+
+    <form id="form-entrar">
+      <div class="field">
+        <label class="field-label" for="entrar-usuario">Usuário</label>
+        <input type="text" id="entrar-usuario" maxlength="24" required>
+      </div>
+      <div class="field">
+        <label class="field-label" for="entrar-senha">Senha</label>
+        <input type="password" id="entrar-senha" required>
+      </div>
+      <button class="btn btn-primary btn-lg btn-block" type="submit">Entrar</button>
+      <p class="hint" style="text-align:center; margin-top:12px">
+        <a href="recuperar.html">Esqueci minha senha</a>
+      </p>
+    </form>
+
+    <form id="form-cadastro" style="display:none">
+      <div class="aviso" style="margin-bottom:16px">
+        <p><strong>Antes de criar sua conta, saiba como ela funciona:</strong></p>
+        <p>
+          Não pedimos e-mail nem nenhum dado pessoal — sua conta é só um nome de
+          usuário e uma senha. Por isso, <strong>guarde-os bem</strong>: a pergunta
+          secreta abaixo é a <strong>única</strong> forma de recuperar a senha.
+          Se você perder o usuário, a senha e a resposta secreta, não conseguiremos
+          devolver o acesso.
+        </p>
+        <p>
+          Você pode criar outro usuário quando quiser, mas os quizzes pertencem à
+          conta que os criou — num usuário novo, você começa do zero.
+        </p>
+      </div>
+      <div class="field">
+        <label class="field-label" for="cadastro-usuario">Usuário</label>
+        <input type="text" id="cadastro-usuario" maxlength="24" placeholder="3 a 24 letras, números ou _" required>
+        <p class="hint">Só o nome de usuário identifica você aqui — escolha um que consiga lembrar.</p>
+      </div>
+      <div class="field">
+        <label class="field-label" for="cadastro-senha">Senha</label>
+        <input type="password" id="cadastro-senha" placeholder="Pelo menos 8 caracteres" required>
+      </div>
+      <div class="field">
+        <label class="field-label" for="cadastro-pergunta">Pergunta secreta (para recuperar a senha)</label>
+        <select id="cadastro-pergunta" required></select>
+      </div>
+      <div class="field">
+        <label class="field-label" for="cadastro-resposta">Resposta</label>
+        <input type="text" id="cadastro-resposta" required>
+        <p class="hint">Escolha uma resposta que você vai lembrar daqui a meses. Não diferencia maiúsculas de minúsculas.</p>
+      </div>
+      <div class="field">
+        <label class="field-label">Seu avatar</label>
+        <div id="seletor-avatar"></div>
+        <p class="hint">Um emoji para o seu perfil — dá para trocar depois no painel.</p>
+      </div>
+      <button class="btn btn-primary btn-lg btn-block" type="submit">Criar conta</button>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+import { chamarRpc } from './assets/js/supabase.js';
+import { salvarSessao, PERGUNTAS_SECRETAS } from './assets/js/sessao.js';
+import { mostrarToast } from './assets/js/ui.js';
+import { montarSeletorEmoji } from './assets/js/avatar.js';
+
+const abaEntrar = document.getElementById('aba-entrar');
+const abaCadastro = document.getElementById('aba-cadastro');
+const formEntrar = document.getElementById('form-entrar');
+const formCadastro = document.getElementById('form-cadastro');
+
+document.getElementById('cadastro-pergunta').innerHTML = PERGUNTAS_SECRETAS
+  .map((p) => `<option value="${p}">${p}</option>`).join('');
+
+const seletor = montarSeletorEmoji(document.getElementById('seletor-avatar'));
+
+function mostrarAba(qual) {
+  formEntrar.style.display = qual === 'entrar' ? 'block' : 'none';
+  formCadastro.style.display = qual === 'cadastro' ? 'block' : 'none';
+  abaEntrar.classList.toggle('btn-ghost', qual !== 'entrar');
+  abaCadastro.classList.toggle('btn-ghost', qual !== 'cadastro');
+}
+abaEntrar.addEventListener('click', () => mostrarAba('entrar'));
+abaCadastro.addEventListener('click', () => mostrarAba('cadastro'));
+mostrarAba('entrar');
+
+formEntrar.addEventListener('submit', async (evento) => {
+  evento.preventDefault();
+  const usuario = document.getElementById('entrar-usuario').value.trim();
+  const senha = document.getElementById('entrar-senha').value;
+  try {
+    const [resultado] = await chamarRpc('creator_login', { p_username: usuario, p_password: senha });
+    salvarSessao({
+      creatorId: resultado.creator_id,
+      username: usuario,
+      sessionToken: resultado.session_token,
+      isAdmin: resultado.is_admin,
+      avatarEmoji: resultado.avatar_emoji,
+    });
+    window.location.href = 'painel.html';
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+});
+
+formCadastro.addEventListener('submit', async (evento) => {
+  evento.preventDefault();
+  const usuario = document.getElementById('cadastro-usuario').value.trim();
+  const senha = document.getElementById('cadastro-senha').value;
+  const pergunta = document.getElementById('cadastro-pergunta').value;
+  const resposta = document.getElementById('cadastro-resposta').value;
+  const avatar = seletor.selecionado();
+  try {
+    let resultado;
+    try {
+      [resultado] = await chamarRpc('creator_register', {
+        p_username: usuario,
+        p_password: senha,
+        p_secret_question: pergunta,
+        p_secret_answer: resposta,
+        p_avatar_emoji: avatar,
+      });
+    } catch (erro) {
+      // Banco ainda sem a migração de avatares: cadastra sem avatar.
+      if (!/function/i.test(erro.message)) throw erro;
+      [resultado] = await chamarRpc('creator_register', {
+        p_username: usuario,
+        p_password: senha,
+        p_secret_question: pergunta,
+        p_secret_answer: resposta,
+      });
+    }
+    salvarSessao({
+      creatorId: resultado.creator_id,
+      username: usuario,
+      sessionToken: resultado.session_token,
+      isAdmin: resultado.is_admin,
+      avatarEmoji: resultado.avatar_emoji ?? avatar,
+    });
+    window.location.href = 'painel.html';
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+});
+</script>
+</body>
+</html>

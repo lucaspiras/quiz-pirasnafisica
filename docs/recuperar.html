@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recuperar senha · Quiz Piras na Física</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/icons/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1e2a78">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
+<link rel="stylesheet" href="assets/css/estilo.css">
+</head>
+<body>
+<div class="container">
+  <a class="brand" href="index.html"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+
+  <div class="card">
+    <h1>Recuperar senha</h1>
+    <p>
+      Como não guardamos e-mail, a recuperação é pela <strong>pergunta secreta</strong>
+      que você escolheu ao criar a conta. Digite seu usuário para vê-la.
+    </p>
+
+    <form id="form-usuario">
+      <div class="field">
+        <label class="field-label" for="usuario">Usuário</label>
+        <input type="text" id="usuario" maxlength="24" required>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Continuar</button>
+    </form>
+
+    <form id="form-resposta" style="display:none">
+      <div class="field">
+        <label class="field-label" id="pergunta-label" for="resposta"></label>
+        <input type="text" id="resposta" required>
+        <p class="hint">Não diferencia maiúsculas de minúsculas nem espaços nas pontas.</p>
+      </div>
+      <div class="field">
+        <label class="field-label" for="nova-senha">Nova senha</label>
+        <input type="password" id="nova-senha" placeholder="Pelo menos 8 caracteres" required>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Trocar senha</button>
+      <p class="hint" style="margin-top:12px">
+        Se não lembrar a resposta, infelizmente não há outra forma de recuperar
+        esta conta. Você pode criar um usuário novo — mas os quizzes da conta
+        antiga ficam inacessíveis.
+      </p>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+import { chamarRpc } from './assets/js/supabase.js';
+import { mostrarToast } from './assets/js/ui.js';
+
+let usuarioAtual = '';
+
+document.getElementById('form-usuario').addEventListener('submit', async (evento) => {
+  evento.preventDefault();
+  const usuario = document.getElementById('usuario').value.trim();
+  try {
+    const pergunta = await chamarRpc('creator_recover_get_question', { p_username: usuario });
+    usuarioAtual = usuario;
+    document.getElementById('pergunta-label').textContent = pergunta;
+    document.getElementById('form-usuario').style.display = 'none';
+    document.getElementById('form-resposta').style.display = 'block';
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+});
+
+document.getElementById('form-resposta').addEventListener('submit', async (evento) => {
+  evento.preventDefault();
+  const resposta = document.getElementById('resposta').value;
+  const novaSenha = document.getElementById('nova-senha').value;
+  try {
+    await chamarRpc('creator_recover_reset', {
+      p_username: usuarioAtual,
+      p_secret_answer: resposta,
+      p_new_password: novaSenha,
+    });
+    mostrarToast('Senha alterada. Faça login novamente.');
+    window.location.href = 'login.html';
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moderação · Quiz Piras na Física</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/icons/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1e2a78">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
+<link rel="stylesheet" href="assets/css/estilo.css">
+</head>
+<body>
+<div class="container-wide">
+  <div class="row-between">
+    <a class="brand" href="painel.html" style="margin-bottom:0"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+    <a class="btn btn-ghost" href="painel.html">← Meus quizzes</a>
+  </div>
+
+  <div class="card">
+    <h1>Pedidos de publicação</h1>
+    <p>Quizzes aguardando revisão para entrar no banco de perguntas público.</p>
+    <div id="lista-pendentes"></div>
+  </div>
+</div>
+
+<script type="module">
+import { chamarRpc } from './assets/js/supabase.js';
+import { exigirSessaoOuRedirecionar } from './assets/js/sessao.js';
+import { escaparHtml, mostrarToast } from './assets/js/ui.js';
+
+const sessao = exigirSessaoOuRedirecionar();
+if (sessao && !sessao.isAdmin) {
+  document.querySelector('.container-wide').innerHTML = '<div class="card empty">Apenas administradores podem acessar esta página.</div>';
+}
+
+async function carregar() {
+  const lista = document.getElementById('lista-pendentes');
+  try {
+    const pendentes = await chamarRpc('admin_pending_quizzes', { p_session_token: sessao.sessionToken });
+    if (pendentes.length === 0) {
+      lista.innerHTML = '<p class="empty">Nenhum pedido pendente.</p>';
+      return;
+    }
+    lista.innerHTML = `
+      <ul class="scoreboard">
+        ${pendentes.map((p) => `
+          <li>
+            <span style="flex:1">
+              ${escaparHtml(p.title)}
+              <br><span class="hint">por ${escaparHtml(p.creator_username)} — ${p.question_count} pergunta(s)</span>
+            </span>
+            <a class="btn btn-ghost" href="praticar.html?quiz=${p.quiz_id}" target="_blank">Ver</a>
+            <button class="btn btn-primary" data-aprovar="${p.quiz_id}">Aprovar</button>
+            <button class="btn btn-danger" data-rejeitar="${p.quiz_id}">Rejeitar</button>
+          </li>
+        `).join('')}
+      </ul>
+    `;
+    lista.querySelectorAll('[data-aprovar]').forEach((btn) => {
+      btn.addEventListener('click', () => revisar(btn.dataset.aprovar, true));
+    });
+    lista.querySelectorAll('[data-rejeitar]').forEach((btn) => {
+      btn.addEventListener('click', () => revisar(btn.dataset.rejeitar, false));
+    });
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+}
+
+async function revisar(quizId, aprovar) {
+  try {
+    await chamarRpc('admin_review_quiz', { p_session_token: sessao.sessionToken, p_quiz_id: quizId, p_approve: aprovar });
+    mostrarToast(aprovar ? 'Quiz aprovado e publicado.' : 'Pedido rejeitado.');
+    await carregar();
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+}
+
+if (sessao?.isAdmin) carregar();
+</script>
+</body>
+</html>

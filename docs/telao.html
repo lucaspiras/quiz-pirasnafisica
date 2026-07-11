@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Telão · Quiz Piras na Física</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/icons/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1e2a78">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
+<link rel="stylesheet" href="assets/css/estilo.css">
+</head>
+<body class="telao">
+<div class="container-wide">
+  <div id="tela"></div>
+</div>
+
+<script type="module">
+import { supabase, chamarRpc } from './assets/js/supabase.js';
+import { criarSincronizacaoAoVivo } from './assets/js/realtime.js';
+import { criarTemporizador } from './assets/js/temporizador.js';
+import { escaparHtml, urlQrCode, parametrosDaUrl } from './assets/js/ui.js';
+import { AVATAR_PADRAO } from './assets/js/avatar.js';
+
+const sessionId = parametrosDaUrl().get('session');
+const tela = document.getElementById('tela');
+if (!sessionId) {
+  tela.innerHTML = '<div class="card empty">Sessão não informada.</div>';
+  throw new Error('sessao ausente');
+}
+
+const linkEntrar = `${window.location.origin}${window.location.pathname.replace('telao.html', 'entrar.html')}`;
+let perguntaIdAtual = undefined;
+let temporizador = null;
+let redirecionado = false;
+
+function pararTemporizador() {
+  if (temporizador) { temporizador.parar(); temporizador = null; }
+}
+
+function avatarDe(p) {
+  return escaparHtml(p.avatar_emoji || AVATAR_PADRAO);
+}
+
+function renderMedia(estado) {
+  if (!estado.q_media_url) return '';
+  if (estado.q_media_type === 'image') {
+    return `<div class="media-preview"><img src="${escaparHtml(estado.q_media_url)}" alt=""></div>`;
+  }
+  if (estado.q_media_type === 'youtube') {
+    const m = estado.q_media_url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
+    return m ? `<div class="media-preview"><iframe src="https://www.youtube.com/embed/${m[1]}" allowfullscreen></iframe></div>` : '';
+  }
+  return '';
+}
+
+function renderPlacar(placar) {
+  const top = placar.slice(0, 8);
+  return `
+    <div class="card">
+      <h3>Placar</h3>
+      <ul class="scoreboard">
+        ${top.map((p, i) => `
+          <li>
+            <span class="rank">${i + 1}</span>
+            <span class="avatar">${avatarDe(p)}</span>
+            <span>${escaparHtml(p.nickname)}</span>
+            <span class="points">${p.total_points} pts</span>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+  `;
+}
+
+async function renderLobby(sessao, participantes) {
+  const ativos = participantes.filter((p) => !p.is_kicked);
+  tela.innerHTML = `
+    <div class="card" style="text-align:center">
+      <p class="hint">Entre em</p>
+      <h1 style="margin-bottom:4px">${linkEntrar}</h1>
+      <div class="pin-display">${sessao.pin}</div>
+      <img src="${urlQrCode(`${linkEntrar}?pin=${sessao.pin}`, 260)}" alt="QR code" style="margin:18px auto; display:block; border-radius:12px">
+    </div>
+    <div class="card">
+      <h3>${ativos.length} participante(s) na sala</h3>
+      <div class="spread">
+        ${ativos.map((p) => `<span class="pill">${avatarDe(p)} ${escaparHtml(p.nickname)}</span>`).join('') || '<span class="hint pulso-suave">Aguardando participantes...</span>'}
+      </div>
+    </div>
+  `;
+}
+
+async function renderPergunta(estado) {
+  let distribuicao = {};
+  if (estado.question_status === 'closed' || estado.question_status === 'revealed') {
+    try {
+      const respostas = await chamarRpc('session_current_answers', { p_session_id: sessionId });
+      for (const r of respostas) distribuicao[r.choice_key] = (distribuicao[r.choice_key] || 0) + 1;
+    } catch {}
+  }
+
+  const opcoesHtml = (estado.q_options || []).map((op) => {
+    const classes = ['option-card'];
+    if (estado.question_status === 'revealed' && op.key === estado.reveal_correct_key) classes.push('is-correct');
+    const contagem = distribuicao[op.key] || 0;
+    const mostrar = estado.question_status === 'closed' || estado.question_status === 'revealed';
+    return `
+      <div class="${classes.join(' ')}" data-letra="${op.key}">
+        <span class="badge">${op.key}</span><span style="flex:1">${escaparHtml(op.label)}</span>
+        ${mostrar ? `<span class="pill">${contagem}</span>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  tela.innerHTML = `
+    <div class="card">
+      <div class="row-between">
+        <span class="pill">Pergunta ${(estado.q_index ?? 0) + 1} de ${estado.q_total ?? '?'}</span>
+      </div>
+      ${estado.question_status === 'open' ? '<div class="timer-bar" id="barra-tempo" style="margin:14px 0"><span style="width:100%"></span></div>' : ''}
+      <h1>${escaparHtml(estado.q_text)}</h1>
+      ${renderMedia(estado)}
+      <div class="option-grid">${opcoesHtml}</div>
+    </div>
+  `;
+
+  if (estado.question_status === 'revealed') {
+    try {
+      const placar = await chamarRpc('session_scoreboard', { p_session_id: sessionId });
+      tela.insertAdjacentHTML('beforeend', renderPlacar(placar));
+    } catch {}
+  }
+
+  if (estado.question_status === 'open' && !temporizador) {
+    temporizador = criarTemporizador({
+      segundosTotais: estado.q_seconds,
+      aoAtualizar: (restanteMs, totalMs) => {
+        const barra = document.getElementById('barra-tempo');
+        if (!barra) return;
+        barra.querySelector('span').style.width = `${Math.max(0, (restanteMs / totalMs) * 100)}%`;
+        barra.classList.toggle('is-urgente', restanteMs / totalMs <= 0.2);
+      },
+    });
+    const calibrado = await temporizador.calibrar(sessionId);
+    if (calibrado) temporizador.iniciar();
+  }
+}
+
+async function renderizar({ estado, sessao, participantes }) {
+  if (!estado || !sessao || redirecionado) return;
+
+  if (sessao.status === 'finished') {
+    redirecionado = true;
+    window.location.href = `resultado.html?session=${sessionId}`;
+    return;
+  }
+
+  if (estado.current_question_id !== perguntaIdAtual) {
+    perguntaIdAtual = estado.current_question_id;
+    pararTemporizador();
+  }
+
+  if (sessao.status === 'lobby') {
+    await renderLobby(sessao, participantes);
+  } else {
+    await renderPergunta(estado);
+  }
+}
+
+const sync = criarSincronizacaoAoVivo({
+  nomeCanal: `quiz-telao-${sessionId}`,
+  tabelas: [
+    { nome: 'session_state', coluna: 'session_id', valor: sessionId },
+    { nome: 'game_sessions', coluna: 'id', valor: sessionId },
+    { nome: 'participants', coluna: 'session_id', valor: sessionId },
+  ],
+  buscar: async () => {
+    const [{ data: estado }, { data: sessao }, { data: participantes }] = await Promise.all([
+      supabase.from('session_state').select('*').eq('session_id', sessionId).maybeSingle(),
+      supabase.from('game_sessions').select('*').eq('id', sessionId).maybeSingle(),
+      supabase.from('participants').select('*').eq('session_id', sessionId).order('joined_at'),
+    ]);
+    return { estado, sessao, participantes: participantes || [] };
+  },
+  atualizar: renderizar,
+  intervaloPollMs: 2000,
+});
+
+sync.iniciar();
+</script>
+</body>
+</html>

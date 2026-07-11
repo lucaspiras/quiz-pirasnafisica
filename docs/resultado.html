@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resultado · Quiz Piras na Física</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/icons/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1e2a78">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
+<link rel="stylesheet" href="assets/css/estilo.css">
+</head>
+<body>
+<div class="container">
+  <a class="brand" href="index.html"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+  <div id="tela"><div class="empty">Carregando resultado...</div></div>
+</div>
+
+<script type="module">
+import { chamarRpc } from './assets/js/supabase.js';
+import { lerParticipante } from './assets/js/participante.js';
+import { escaparHtml, parametrosDaUrl } from './assets/js/ui.js';
+import { dispararConfete } from './assets/js/confete.js';
+import { AVATAR_PADRAO } from './assets/js/avatar.js';
+
+const sessionId = parametrosDaUrl().get('session');
+const tela = document.getElementById('tela');
+const eu = sessionId ? lerParticipante(sessionId) : null;
+
+const MEDALHAS = ['🥇', '🥈', '🥉'];
+
+function avatarDe(p) {
+  return escaparHtml(p.avatar_emoji || AVATAR_PADRAO);
+}
+
+function colunaPodio(p, posicao) {
+  // posicao: 1, 2 ou 3 (1º ao 3º lugar)
+  return `
+    <div class="podium-col podium-${posicao}">
+      <span class="podium-medalha">${MEDALHAS[posicao - 1]}</span>
+      <span class="avatar avatar-lg">${avatarDe(p)}</span>
+      <span class="podium-nome">${escaparHtml(p.nickname)}</span>
+      <span class="podium-pontos">${p.total_points} pts</span>
+      <div class="podium-base">${posicao}</div>
+    </div>
+  `;
+}
+
+async function carregar() {
+  if (!sessionId) {
+    tela.innerHTML = '<div class="card empty">Sessão não informada.</div>';
+    return;
+  }
+  let placar;
+  try {
+    placar = await chamarRpc('session_scoreboard', { p_session_id: sessionId });
+  } catch (erro) {
+    tela.innerHTML = `<div class="card empty">${escaparHtml(erro.message)}</div>`;
+    return;
+  }
+
+  placar = placar.filter((p) => !p.is_kicked);
+  const podio = placar.slice(0, 3);
+  const resto = placar.slice(3);
+
+  // Pódio na ordem visual 2º · 1º · 3º (o CSS anima a entrada 3º → 2º → 1º)
+  const ordemVisual = [podio[1], podio[0], podio[2]].filter(Boolean);
+
+  tela.innerHTML = `
+    <div class="card" style="text-align:center">
+      <div class="trofeu-hero">🏆</div>
+      <h1>Resultado final</h1>
+      ${podio.length === 0 ? '<p class="empty">Ninguém participou desta sessão.</p>' : `
+        <div class="podium">
+          ${ordemVisual.map((p) => colunaPodio(p, podio.indexOf(p) + 1)).join('')}
+        </div>
+      `}
+    </div>
+
+    ${resto.length > 0 ? `
+      <div class="card">
+        <h3>Demais participantes</h3>
+        <ul class="scoreboard">
+          ${resto.map((p, i) => `
+            <li class="${eu && p.participant_id === eu.participantId ? 'is-me' : ''}">
+              <span class="rank">${i + 4}</span>
+              <span class="avatar">${avatarDe(p)}</span>
+              <span>${escaparHtml(p.nickname)}</span>
+              <span class="points">${p.total_points} pts</span>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    ` : ''}
+
+    <div class="card" style="text-align:center">
+      <p>Gostou? Crie o seu próprio quiz — é grátis e não pede e-mail.</p>
+      <a class="btn btn-primary btn-block" href="login.html">Criar um quiz</a>
+      <a class="btn btn-ghost btn-block" href="publicos.html" style="margin-top:10px">Praticar com quizzes prontos</a>
+    </div>
+  `;
+
+  // Confete entra junto com o 1º lugar do pódio (delay da animação CSS).
+  if (podio.length > 0) {
+    setTimeout(() => dispararConfete(), 1800);
+  }
+}
+
+carregar();
+</script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrar · Quiz Piras na Física</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/icons/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1e2a78">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
+<link rel="stylesheet" href="assets/css/estilo.css">
+</head>
+<body>
+<div class="container">
+  <a class="brand" href="index.html"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+
+  <div class="card">
+    <h1>Entrar em um quiz</h1>
+    <p>O código de 6 dígitos aparece no telão ou com quem está apresentando o quiz.</p>
+    <form id="form-entrar">
+      <div class="field">
+        <label class="field-label" for="pin">Código da sala</label>
+        <input type="text" id="pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" style="font-family:var(--font-mono); font-size:1.4rem; letter-spacing:0.1em; text-align:center" required>
+      </div>
+      <div class="field">
+        <label class="field-label" for="apelido">Seu apelido</label>
+        <input type="text" id="apelido" maxlength="24" placeholder="Como quer aparecer no placar" required>
+      </div>
+      <div class="field">
+        <label class="field-label">Seu avatar</label>
+        <div id="seletor-avatar"></div>
+        <p class="hint">Escolha um emoji para te representar no placar. Sorteamos um para começar.</p>
+      </div>
+      <button class="btn btn-primary btn-lg btn-block" type="submit" id="botao-entrar">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+import { chamarRpc } from './assets/js/supabase.js';
+import { salvarParticipante } from './assets/js/participante.js';
+import { mostrarToast, parametrosDaUrl } from './assets/js/ui.js';
+import { montarSeletorEmoji } from './assets/js/avatar.js';
+
+const pinPrefill = parametrosDaUrl().get('pin');
+if (pinPrefill) document.getElementById('pin').value = pinPrefill;
+
+const seletor = montarSeletorEmoji(document.getElementById('seletor-avatar'));
+
+const form = document.getElementById('form-entrar');
+const botao = document.getElementById('botao-entrar');
+
+form.addEventListener('submit', async (evento) => {
+  evento.preventDefault();
+  const pin = document.getElementById('pin').value.trim();
+  const apelido = document.getElementById('apelido').value.trim();
+  if (!pin || !apelido) return;
+
+  botao.disabled = true;
+  botao.textContent = 'Entrando...';
+  try {
+    const avatar = seletor.selecionado();
+    let resultado;
+    try {
+      [resultado] = await chamarRpc('session_join', {
+        p_pin: pin,
+        p_nickname: apelido,
+        p_avatar_emoji: avatar,
+      });
+    } catch (erro) {
+      // Banco ainda sem a migração de avatares: entra sem avatar.
+      if (!/function/i.test(erro.message)) throw erro;
+      [resultado] = await chamarRpc('session_join', { p_pin: pin, p_nickname: apelido });
+    }
+    salvarParticipante(resultado.session_id, {
+      participantId: resultado.participant_id,
+      joinSecret: resultado.join_secret,
+      nickname: apelido,
+      avatarEmoji: avatar,
+    });
+    window.location.href = `jogar.html?session=${resultado.session_id}`;
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+    botao.disabled = false;
+    botao.textContent = 'Entrar';
+  }
+});
+</script>
+</body>
+</html>

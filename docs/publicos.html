@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quizzes públicos · Quiz Piras na Física</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/icons/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1e2a78">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
+<link rel="stylesheet" href="assets/css/estilo.css">
+</head>
+<body>
+<div class="container">
+  <a class="brand" href="index.html"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+
+  <div class="card">
+    <h1>Praticar com quizzes prontos</h1>
+    <p>
+      Escolha um quiz, responda contra o relógio e receba sua pontuação no final —
+      com direito a troféu. Não precisa de conta.
+    </p>
+    <div class="spread">
+      <select id="filtro-tag" style="width:auto" aria-label="Filtrar por tag"><option value="">Todas as tags</option></select>
+    </div>
+  </div>
+
+  <div id="lista-quizzes"></div>
+</div>
+
+<script type="module">
+import { chamarRpc } from './assets/js/supabase.js';
+import { escaparHtml, mostrarToast } from './assets/js/ui.js';
+
+async function carregarTags() {
+  try {
+    const tags = await chamarRpc('question_bank_tags');
+    document.getElementById('filtro-tag').innerHTML =
+      '<option value="">Todas as tags</option>' + tags.map((t) => `<option value="${escaparHtml(t.tag)}">${escaparHtml(t.tag)}</option>`).join('');
+  } catch { /* cosmético */ }
+}
+
+async function carregarQuizzes() {
+  const lista = document.getElementById('lista-quizzes');
+  const tag = document.getElementById('filtro-tag').value;
+  lista.innerHTML = '<div class="card empty pulso-suave">Carregando...</div>';
+  try {
+    const quizzes = await chamarRpc('public_quizzes_list', { p_tags: tag ? [tag] : null });
+    if (quizzes.length === 0) {
+      lista.innerHTML = `
+        <div class="card empty">
+          <span class="empty-icone">🔎</span>
+          <p><strong>Nenhum quiz público encontrado${tag ? ' com essa tag' : ''}.</strong></p>
+          <p>Tem uma conta? Você pode criar um quiz e pedir a publicação no banco público.</p>
+        </div>
+      `;
+      return;
+    }
+    lista.innerHTML = quizzes.map((q) => `
+      <div class="card entrada-suave">
+        <div class="row-between">
+          <h3 style="margin:0">${escaparHtml(q.title)}</h3>
+          <a class="btn btn-primary" href="praticar.html?quiz=${q.quiz_id}">Praticar</a>
+        </div>
+        ${q.description ? `<p style="margin-top:8px">${escaparHtml(q.description)}</p>` : ''}
+        <div class="spread" style="margin-top:10px">
+          <span class="pill">${q.question_count} pergunta(s)</span>
+          ${(q.tags || []).map((t) => `<span class="pill pill-tag">${escaparHtml(t)}</span>`).join('')}
+        </div>
+      </div>
+    `).join('');
+  } catch (erro) {
+    lista.innerHTML = '';
+    mostrarToast(erro.message, 'error');
+  }
+}
+
+document.getElementById('filtro-tag').addEventListener('change', carregarQuizzes);
+
+carregarTags();
+carregarQuizzes();
+</script>
+</body>
+</html>

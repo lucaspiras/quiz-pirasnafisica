@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meus quizzes · Quiz Piras na Física</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/icons/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1e2a78">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
+<link rel="stylesheet" href="assets/css/estilo.css">
+</head>
+<body>
+<div class="container-wide">
+  <div class="row-between">
+    <a class="brand" href="index.html" style="margin-bottom:0"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+    <div class="row">
+      <button class="pill" id="pill-usuario" type="button" title="Trocar avatar" style="border:none; cursor:pointer; font:inherit"></button>
+      <a class="btn btn-ghost" href="moderacao.html" id="link-moderacao" style="display:none">Moderação</a>
+      <button class="btn btn-ghost" id="botao-sair">Sair</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row-between">
+      <h1 style="margin:0">Meus quizzes</h1>
+      <button class="btn btn-primary" id="botao-novo">+ Novo quiz</button>
+    </div>
+    <form id="form-novo" class="row" style="display:none; margin-top:14px">
+      <input type="text" id="novo-titulo" maxlength="120" placeholder="Título do novo quiz" style="flex:1" required>
+      <button class="btn btn-primary" type="submit">Criar</button>
+      <button class="btn btn-ghost" type="button" id="botao-cancelar-novo">Cancelar</button>
+    </form>
+    <div id="lista-quizzes"></div>
+  </div>
+</div>
+
+<script type="module">
+import { chamarRpc } from './assets/js/supabase.js';
+import { lerSessao, limparSessao, atualizarSessao, exigirSessaoOuRedirecionar } from './assets/js/sessao.js';
+import { escaparHtml, mostrarToast, confirmarAcao } from './assets/js/ui.js';
+import { montarSeletorEmoji, AVATAR_PADRAO } from './assets/js/avatar.js';
+
+const sessao = exigirSessaoOuRedirecionar();
+
+function renderizarPillUsuario() {
+  const atual = lerSessao();
+  document.getElementById('pill-usuario').textContent =
+    `${atual?.avatarEmoji || AVATAR_PADRAO} ${atual?.username ?? ''}`;
+}
+
+if (sessao) {
+  renderizarPillUsuario();
+  if (sessao.isAdmin) document.getElementById('link-moderacao').style.display = 'inline-flex';
+}
+
+// Troca de avatar: clique no pill abre um modal com o seletor de emojis.
+document.getElementById('pill-usuario').addEventListener('click', () => {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-avatar">
+      <h3 id="titulo-avatar">Escolha seu avatar</h3>
+      <div id="seletor-avatar-modal"></div>
+      <div class="modal-acoes">
+        <button class="btn btn-ghost" data-modal="cancelar">Cancelar</button>
+        <button class="btn btn-primary" data-modal="salvar">Salvar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(backdrop);
+
+  const seletor = montarSeletorEmoji(backdrop.querySelector('#seletor-avatar-modal'), {
+    selecionado: lerSessao()?.avatarEmoji || null,
+  });
+
+  backdrop.addEventListener('click', (evento) => {
+    if (evento.target === backdrop) backdrop.remove();
+  });
+  backdrop.querySelector('[data-modal="cancelar"]').addEventListener('click', () => backdrop.remove());
+  backdrop.querySelector('[data-modal="salvar"]').addEventListener('click', async () => {
+    const avatar = seletor.selecionado();
+    try {
+      await chamarRpc('creator_avatar_update', { p_session_token: sessao.sessionToken, p_avatar_emoji: avatar });
+      atualizarSessao({ avatarEmoji: avatar });
+      renderizarPillUsuario();
+      mostrarToast('Avatar atualizado.');
+    } catch (erro) {
+      mostrarToast(erro.message, 'error');
+    }
+    backdrop.remove();
+  });
+});
+
+const ROTULO_VISIBILIDADE = { private: 'Privado', pending: 'Aguardando revisão', public: 'Público' };
+
+async function carregar() {
+  const lista = document.getElementById('lista-quizzes');
+  try {
+    const quizzes = await chamarRpc('creator_my_quizzes', { p_session_token: sessao.sessionToken });
+    if (quizzes.length === 0) {
+      lista.innerHTML = `
+        <div class="empty">
+          <span class="empty-icone">💡</span>
+          <p><strong>Você ainda não criou nenhum quiz.</strong></p>
+          <p>Clique em "+ Novo quiz" para montar o primeiro — dá para importar perguntas prontas do banco público.</p>
+        </div>
+      `;
+      return;
+    }
+    lista.innerHTML = `
+      <ul class="scoreboard">
+        ${quizzes.map((q) => `
+          <li>
+            <span style="flex:1">${escaparHtml(q.title)}</span>
+            <span class="pill">${ROTULO_VISIBILIDADE[q.visibility] || q.visibility}</span>
+            <a class="btn btn-ghost" href="praticar.html?quiz=${q.quiz_id}" target="_blank">Praticar</a>
+            <a class="btn btn-ghost" href="editar.html?quiz=${q.quiz_id}">Editar</a>
+            <button class="btn btn-danger" data-excluir="${q.quiz_id}" data-titulo="${escaparHtml(q.title)}">Excluir</button>
+          </li>
+        `).join('')}
+      </ul>
+    `;
+    lista.querySelectorAll('[data-excluir]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const confirmado = await confirmarAcao({
+          titulo: 'Excluir quiz',
+          mensagem: `"${btn.dataset.titulo}" e todas as suas perguntas serão apagados de vez. Essa ação não pode ser desfeita.`,
+          rotuloConfirmar: 'Excluir de vez',
+          perigoso: true,
+        });
+        if (!confirmado) return;
+        try {
+          await chamarRpc('quiz_delete', { p_session_token: sessao.sessionToken, p_quiz_id: btn.dataset.excluir });
+          carregar();
+        } catch (erro) {
+          mostrarToast(erro.message, 'error');
+        }
+      });
+    });
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+    if (/sess[aã]o expirada/i.test(erro.message)) {
+      limparSessao();
+      window.location.href = 'login.html';
+    }
+  }
+}
+
+const formNovo = document.getElementById('form-novo');
+
+document.getElementById('botao-novo').addEventListener('click', () => {
+  formNovo.style.display = 'flex';
+  document.getElementById('novo-titulo').focus();
+});
+document.getElementById('botao-cancelar-novo').addEventListener('click', () => {
+  formNovo.style.display = 'none';
+  document.getElementById('novo-titulo').value = '';
+});
+
+formNovo.addEventListener('submit', async (evento) => {
+  evento.preventDefault();
+  const titulo = document.getElementById('novo-titulo').value.trim();
+  if (!titulo) return;
+  try {
+    const quizId = await chamarRpc('quiz_create', { p_session_token: sessao.sessionToken, p_title: titulo });
+    window.location.href = `editar.html?quiz=${quizId}`;
+  } catch (erro) {
+    mostrarToast(erro.message, 'error');
+  }
+});
+
+document.getElementById('botao-sair').addEventListener('click', async () => {
+  try { await chamarRpc('creator_logout', { p_session_token: sessao.sessionToken }); } catch {}
+  limparSessao();
+  window.location.href = 'index.html';
+});
+
+if (sessao) carregar();
+</script>
+</body>
+</html>
