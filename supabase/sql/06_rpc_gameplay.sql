@@ -1,10 +1,17 @@
 -- RPCs do lado do participante: entrar na sala e responder perguntas.
 
--- O parâmetro novo com default exige apagar a assinatura antiga: se as duas
+-- O parâmetro novo com default exige apagar as assinaturas antigas: se as
 -- versões coexistirem, o PostgREST não sabe qual chamar (overload ambíguo).
+-- p_session_token opcional: quem estiver logado vincula a participação à
+-- conta (tabela participant_accounts); convidado segue 100% anônimo.
 drop function if exists session_join(text, text);
 drop function if exists session_join(text, text, text);
-create or replace function session_join(p_pin text, p_nickname text, p_avatar_emoji text default null)
+create or replace function session_join(
+  p_pin text,
+  p_nickname text,
+  p_avatar_emoji text default null,
+  p_session_token text default null
+)
 returns table (participant_id uuid, session_id uuid, join_secret text)
 language plpgsql
 security definer
@@ -16,7 +23,14 @@ declare
   v_avatar text := nullif(trim(coalesce(p_avatar_emoji, '')), '');
   v_join_secret text := generate_url_safe_token();
   v_participant_id uuid;
+  v_creator_id uuid;
 begin
+  -- Valida o login ANTES de criar o participante: token expirado falha aqui
+  -- e o cliente oferece entrar como convidado, sem deixar participante órfão.
+  if p_session_token is not null then
+    v_creator_id := creator_id_from_session(p_session_token);
+  end if;
+
   if char_length(v_nickname) = 0 or char_length(v_nickname) > 24 then
     raise exception 'O apelido precisa ter entre 1 e 24 caracteres.';
   end if;
@@ -51,10 +65,15 @@ begin
   insert into participant_secrets (participant_id, join_secret_hash)
   values (v_participant_id, extensions.digest(v_join_secret, 'sha256'));
 
+  if v_creator_id is not null then
+    insert into participant_accounts (participant_id, creator_id)
+    values (v_participant_id, v_creator_id);
+  end if;
+
   return query select v_participant_id, v_session.id, v_join_secret;
 end;
 $$;
-grant execute on function session_join(text, text, text) to anon;
+grant execute on function session_join(text, text, text, text) to anon;
 
 create or replace function participant_authorized(p_session_id uuid, p_participant_id uuid, p_join_secret text)
 returns boolean

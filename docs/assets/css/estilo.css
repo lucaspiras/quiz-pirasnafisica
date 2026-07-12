@@ -72,9 +72,12 @@
   --font-mono: "Space Mono", ui-monospace, "SF Mono", Consolas, monospace;
 }
 
-/* Tema escuro automático: índigo profundo, não cinza */
-@media (prefers-color-scheme: dark) {
-  :root {
+/* Tema escuro: índigo profundo, não cinza. Aplicado via data-theme="dark"
+   no <html>, que o tema.js define a partir da escolha do usuário (botão
+   de lua/sol no cabeçalho) ou, sem escolha salva, do tema do sistema. */
+:root { color-scheme: light; }
+:root[data-theme="dark"] {
+    color-scheme: dark;
     --paper: #12152e;
     --paper-raised: #1a1e3f;
     --ink: #eef0fb;
@@ -109,7 +112,6 @@
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     --shadow-pop: 0 6px 24px rgba(0, 0, 0, 0.5);
     --sombra-cta: 0 4px 14px rgba(106, 47, 232, 0.5);
-  }
 }
 
 * { box-sizing: border-box; }
@@ -185,6 +187,10 @@ a { color: var(--accent); }
 }
 .brand .dot { color: var(--laranja); }
 
+/* Cabeçalho das páginas internas: marca à esquerda, ações à direita,
+   com respiro generoso antes do conteúdo. */
+.cabecalho-pagina { margin-bottom: 36px; }
+
 /* ---------- Cartões e layout ---------- */
 
 .card {
@@ -232,6 +238,29 @@ textarea { resize: vertical; min-height: 70px; }
 
 .field { margin-bottom: 14px; }
 .hint { font-size: 0.8rem; color: var(--ink-soft); margin-top: 4px; }
+
+/* Bloco de código (ex.: exemplo de JSON no guia de importação) */
+.bloco-codigo {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+/* Guia expansível (details/summary) */
+.guia-json { margin: 8px 0; }
+.guia-json summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent);
+}
+.guia-json ol { padding-left: 20px; margin: 8px 0; }
+.guia-json li { margin-bottom: 4px; }
 
 /* Aviso destacado (política de conta, alertas) */
 .aviso {

@@ -15,6 +15,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
 <link rel="stylesheet" href="assets/css/estilo.css">
+<script src="assets/js/tema.js"></script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-TY56KM22X8"></script>
 <script>
@@ -27,12 +28,13 @@
 </head>
 <body>
 <div class="container-wide">
-  <div class="row-between">
+  <div class="row-between cabecalho-pagina">
     <a class="brand" href="index.html" style="margin-bottom:0"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
     <div class="row">
-      <button class="pill" id="pill-usuario" type="button" title="Trocar avatar" style="border:none; cursor:pointer; font:inherit"></button>
+      <a class="pill" id="pill-usuario" href="perfil.html" title="Meu perfil" style="text-decoration:none"></a>
       <a class="btn btn-ghost" href="moderacao.html" id="link-moderacao" style="display:none">Moderação</a>
       <button class="btn btn-ghost" id="botao-sair">Sair</button>
+      <button class="btn btn-ghost" id="botao-tema" type="button" aria-label="Alternar tema">🌙</button>
     </div>
   </div>
 
@@ -52,12 +54,14 @@
 
 <script type="module">
 import { chamarRpc } from './assets/js/supabase.js';
-import { lerSessao, limparSessao, atualizarSessao, exigirSessaoOuRedirecionar } from './assets/js/sessao.js';
+import { lerSessao, limparSessao, exigirSessaoOuRedirecionar } from './assets/js/sessao.js';
 import { escaparHtml, mostrarToast, confirmarAcao } from './assets/js/ui.js';
-import { montarSeletorEmoji, AVATAR_PADRAO } from './assets/js/avatar.js';
+import { AVATAR_PADRAO } from './assets/js/avatar.js';
 
 const sessao = exigirSessaoOuRedirecionar();
 
+// O pill do usuário leva ao perfil (perfil.html), onde ficam avatar,
+// senha e histórico de jogos.
 function renderizarPillUsuario() {
   const atual = lerSessao();
   document.getElementById('pill-usuario').textContent =
@@ -68,44 +72,6 @@ if (sessao) {
   renderizarPillUsuario();
   if (sessao.isAdmin) document.getElementById('link-moderacao').style.display = 'inline-flex';
 }
-
-// Troca de avatar: clique no pill abre um modal com o seletor de emojis.
-document.getElementById('pill-usuario').addEventListener('click', () => {
-  const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop';
-  backdrop.innerHTML = `
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-avatar">
-      <h3 id="titulo-avatar">Escolha seu avatar</h3>
-      <div id="seletor-avatar-modal"></div>
-      <div class="modal-acoes">
-        <button class="btn btn-ghost" data-modal="cancelar">Cancelar</button>
-        <button class="btn btn-primary" data-modal="salvar">Salvar</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(backdrop);
-
-  const seletor = montarSeletorEmoji(backdrop.querySelector('#seletor-avatar-modal'), {
-    selecionado: lerSessao()?.avatarEmoji || null,
-  });
-
-  backdrop.addEventListener('click', (evento) => {
-    if (evento.target === backdrop) backdrop.remove();
-  });
-  backdrop.querySelector('[data-modal="cancelar"]').addEventListener('click', () => backdrop.remove());
-  backdrop.querySelector('[data-modal="salvar"]').addEventListener('click', async () => {
-    const avatar = seletor.selecionado();
-    try {
-      await chamarRpc('creator_avatar_update', { p_session_token: sessao.sessionToken, p_avatar_emoji: avatar });
-      atualizarSessao({ avatarEmoji: avatar });
-      renderizarPillUsuario();
-      mostrarToast('Avatar atualizado.');
-    } catch (erro) {
-      mostrarToast(erro.message, 'error');
-    }
-    backdrop.remove();
-  });
-});
 
 const ROTULO_VISIBILIDADE = { private: 'Privado', pending: 'Aguardando revisão', public: 'Público' };
 

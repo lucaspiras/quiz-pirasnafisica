@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meu perfil · Quiz Piras na Física</title>
+<meta name="description" content="Perfil do usuário: avatar, senha e histórico de quizzes jogados.">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/icons/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1e2a78">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
+<link rel="stylesheet" href="assets/css/estilo.css">
+<script src="assets/js/tema.js"></script>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-TY56KM22X8"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-TY56KM22X8');
+</script>
+</head>
+<body>
+<div class="container">
+  <div class="row-between cabecalho-pagina">
+    <a class="brand" href="painel.html" style="margin-bottom:0"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+    <div class="row">
+      <a class="btn btn-ghost" href="painel.html">← Meus quizzes</a>
+      <button class="btn btn-ghost" id="botao-sair">Sair</button>
+      <button class="btn btn-ghost" id="botao-tema" type="button" aria-label="Alternar tema">🌙</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="gap:14px">
+      <span id="perfil-avatar" style="font-size:2.6rem; line-height:1"></span>
+      <h1 id="perfil-usuario" style="margin:0"></h1>
+    </div>
+    <div class="field" style="margin-top:16px">
+      <label class="field-label">Trocar avatar</label>
+      <div id="seletor-avatar"></div>
+    </div>
+    <button class="btn btn-primary" id="botao-salvar-avatar">Salvar avatar</button>
+  </div>
+
+  <div class="card">
+    <h3>Trocar senha</h3>
+    <form id="form-senha">
+      <div class="field">
+        <label class="field-label" for="senha-atual">Senha atual</label>
+        <input type="password" id="senha-atual" autocomplete="current-password" required>
+      </div>
+      <div class="field">
+        <label class="field-label" for="senha-nova">Nova senha</label>
+        <input type="password" id="senha-nova" autocomplete="new-password" placeholder="Pelo menos 8 caracteres" required>
+      </div>
+      <div class="field">
+        <label class="field-label" for="senha-confirma">Confirmar nova senha</label>
+        <input type="password" id="senha-confirma" autocomplete="new-password" required>
+      </div>
+      <button class="btn btn-primary" type="submit">Trocar senha</button>
+      <p class="hint" style="margin-top:8px">
+        Ao trocar, seus outros aparelhos são desconectados — este continua logado.
+      </p>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Jogos ao vivo</h3>
+    <p class="hint">Aparecem aqui os jogos em que você entrou com a opção "Com minha conta".</p>
+    <div id="lista-live"><div class="empty pulso-suave">Carregando...</div></div>
+  </div>
+
+  <div class="card">
+    <h3>Prática solo</h3>
+    <p class="hint">Suas últimas tentativas nos quizzes prontos (até 20 por quiz), feitas estando logado.</p>
+    <div id="lista-practice"><div class="empty pulso-suave">Carregando...</div></div>
+  </div>
+</div>
+
+<script type="module">
+import { chamarRpc } from './assets/js/supabase.js';
+import { lerSessao, limparSessao, atualizarSessao, exigirSessaoOuRedirecionar } from './assets/js/sessao.js';
+import { escaparHtml, mostrarToast } from './assets/js/ui.js';
+import { montarSeletorEmoji, AVATAR_PADRAO } from './assets/js/avatar.js';
+
+const sessao = exigirSessaoOuRedirecionar();
+
+function sessaoExpirou(erro) {
+  if (!/sess[aã]o expirada/i.test(erro.message)) return false;
+  limparSessao();
+  window.location.href = 'login.html';
+  return true;
+}
+
+// ---------- Identidade / avatar ----------
+
+function renderizarIdentidade() {
+  const atual = lerSessao();
+  document.getElementById('perfil-avatar').textContent = atual?.avatarEmoji || AVATAR_PADRAO;
+  document.getElementById('perfil-usuario').textContent = atual?.username ?? '';
+}
+
+const seletor = montarSeletorEmoji(document.getElementById('seletor-avatar'), {
+  selecionado: sessao?.avatarEmoji || null,
+});
+
+document.getElementById('botao-salvar-avatar').addEventListener('click', async () => {
+  const avatar = seletor.selecionado();
+  try {
+    await chamarRpc('creator_avatar_update', { p_session_token: sessao.sessionToken, p_avatar_emoji: avatar });
+    atualizarSessao({ avatarEmoji: avatar });
+    renderizarIdentidade();
+    mostrarToast('Avatar atualizado.');
+  } catch (erro) {
+    if (!sessaoExpirou(erro)) mostrarToast(erro.message, 'error');
+  }
+});
+
+// ---------- Trocar senha ----------
+
+document.getElementById('form-senha').addEventListener('submit', async (evento) => {
+  evento.preventDefault();
+  const atual = document.getElementById('senha-atual').value;
+  const nova = document.getElementById('senha-nova').value;
+  const confirma = document.getElementById('senha-confirma').value;
+  if (nova.length < 8) {
+    mostrarToast('A nova senha precisa ter pelo menos 8 caracteres.', 'error');
+    return;
+  }
+  if (nova !== confirma) {
+    mostrarToast('A confirmação não confere com a nova senha.', 'error');
+    return;
+  }
+  try {
+    await chamarRpc('creator_password_change', {
+      p_session_token: sessao.sessionToken,
+      p_current_password: atual,
+      p_new_password: nova,
+    });
+    evento.target.reset();
+    mostrarToast('Senha trocada. Seus outros aparelhos foram desconectados.');
+  } catch (erro) {
+    if (sessaoExpirou(erro)) return;
+    mostrarToast(/function/i.test(erro.message)
+      ? 'O banco ainda não foi atualizado para este recurso.'
+      : erro.message, 'error');
+  }
+});
+
+// ---------- Histórico ----------
+
+const formatarData = (iso) =>
+  new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+
+function medalha(posicao) {
+  if (posicao === 1) return '🥇';
+  if (posicao === 2) return '🥈';
+  if (posicao === 3) return '🥉';
+  return posicao ? `${posicao}º` : '—';
+}
+
+function renderizarLive(jogos) {
+  const lista = document.getElementById('lista-live');
+  if (jogos.length === 0) {
+    lista.innerHTML = `
+      <div class="empty">
+        <span class="empty-icone">🎮</span>
+        <p><strong>Você ainda não jogou nenhum quiz ao vivo logado.</strong></p>
+        <p>Na hora de entrar com o código da sala, escolha "Com minha conta" para o jogo aparecer aqui.</p>
+      </div>
+    `;
+    return;
+  }
+  lista.innerHTML = `
+    <ul class="scoreboard">
+      ${jogos.map((j) => `
+        <li>
+          <span style="min-width:2.2em; text-align:center">${j.was_kicked ? '🚫' : medalha(j.position)}</span>
+          <span style="flex:1">
+            <strong>${escaparHtml(j.quiz_title)}</strong><br>
+            <span class="hint">${formatarData(j.played_at)} · como ${escaparHtml(j.avatar_emoji || AVATAR_PADRAO)} ${escaparHtml(j.nickname)}</span>
+          </span>
+          ${j.was_kicked
+            ? '<span class="pill">Removido da sala</span>'
+            : `<span class="pill">${j.total_points} pts · ${j.correct_count} acerto(s)</span>`}
+          ${j.participants_count && !j.was_kicked ? `<span class="hint">de ${j.participants_count} jogador(es)</span>` : ''}
+          ${j.session_status !== 'finished' ? '<span class="pill">Em andamento</span>' : ''}
+        </li>
+      `).join('')}
+    </ul>
+  `;
+}
+
+function renderizarPractice(tentativas) {
+  const lista = document.getElementById('lista-practice');
+  if (tentativas.length === 0) {
+    lista.innerHTML = `
+      <div class="empty">
+        <span class="empty-icone">🎯</span>
+        <p><strong>Nenhuma tentativa de prática registrada ainda.</strong></p>
+        <p>Estando logado, cada quiz que você <a href="publicos.html">praticar</a> aparece aqui.</p>
+      </div>
+    `;
+    return;
+  }
+  lista.innerHTML = `
+    <ul class="scoreboard">
+      ${tentativas.map((t) => `
+        <li>
+          <span style="flex:1">
+            <strong>${escaparHtml(t.quiz_title)}</strong><br>
+            <span class="hint">${formatarData(t.played_at)}</span>
+          </span>
+          <span class="pill">${t.score} pts · ${t.correct_count}/${t.total_count}</span>
+          <a class="btn btn-ghost" href="praticar.html?quiz=${t.quiz_id}">Praticar de novo</a>
+        </li>
+      `).join('')}
+    </ul>
+  `;
+}
+
+async function carregarHistorico() {
+  try {
+    const historico = await chamarRpc('creator_my_participations', { p_session_token: sessao.sessionToken });
+    renderizarLive(historico.live || []);
+    renderizarPractice(historico.practice || []);
+  } catch (erro) {
+    if (sessaoExpirou(erro)) return;
+    const aviso = /function/i.test(erro.message)
+      ? '<div class="empty">Histórico indisponível — o banco ainda não foi atualizado.</div>'
+      : '<div class="empty">Não foi possível carregar o histórico.</div>';
+    document.getElementById('lista-live').innerHTML = aviso;
+    document.getElementById('lista-practice').innerHTML = aviso;
+    if (!/function/i.test(erro.message)) mostrarToast(erro.message, 'error');
+  }
+}
+
+// ---------- Sair ----------
+
+document.getElementById('botao-sair').addEventListener('click', async () => {
+  try { await chamarRpc('creator_logout', { p_session_token: sessao.sessionToken }); } catch {}
+  limparSessao();
+  window.location.href = 'index.html';
+});
+
+if (sessao) {
+  renderizarIdentidade();
+  carregarHistorico();
+}
+</script>
+</body>
+</html>

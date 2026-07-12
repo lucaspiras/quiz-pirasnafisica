@@ -15,6 +15,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
 <link rel="stylesheet" href="assets/css/estilo.css">
+<script src="assets/js/tema.js"></script>
 <style>
   /* Controle com uma mão no celular: botão de ação preso ao rodapé */
   @media (max-width: 560px) {
@@ -38,9 +39,12 @@
 </head>
 <body>
 <div class="container-wide">
-  <div class="row-between">
+  <div class="row-between cabecalho-pagina">
     <a class="brand" href="index.html" style="margin-bottom:0"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
-    <button class="btn btn-danger" id="botao-encerrar">Encerrar sessão</button>
+    <div class="row">
+      <button class="btn btn-ghost" id="botao-tema" type="button" aria-label="Alternar tema">🌙</button>
+      <button class="btn btn-danger" id="botao-encerrar">Encerrar sessão</button>
+    </div>
   </div>
 
   <div id="tela"></div>

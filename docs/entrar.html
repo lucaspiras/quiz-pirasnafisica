@@ -25,6 +25,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
 <link rel="stylesheet" href="assets/css/estilo.css">
+<script src="assets/js/tema.js"></script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-TY56KM22X8"></script>
 <script>
@@ -37,11 +38,24 @@
 </head>
 <body>
 <div class="container">
-  <a class="brand" href="index.html"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+  <div class="row-between cabecalho-pagina">
+    <a class="brand" href="index.html" style="margin-bottom:0"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+    <button class="btn btn-ghost" id="botao-tema" type="button" aria-label="Alternar tema">🌙</button>
+  </div>
 
   <div class="card">
     <h1>Entrar em um quiz</h1>
     <p>O código de 6 dígitos aparece no telão ou com quem está apresentando o quiz.</p>
+
+    <div id="bloco-conta" style="display:none; margin-bottom:16px">
+      <p style="margin-bottom:8px">Você está logado como <strong id="conta-rotulo"></strong>. Como quer jogar?</p>
+      <div class="row">
+        <button class="btn" type="button" id="aba-conta" style="flex:1">Com minha conta</button>
+        <button class="btn btn-ghost" type="button" id="aba-convidado" style="flex:1">Como convidado</button>
+      </div>
+      <p class="hint" id="hint-modo" style="margin-top:8px"></p>
+    </div>
+
     <form id="form-entrar">
       <div class="field">
         <label class="field-label" for="pin">Código da sala</label>
@@ -57,6 +71,9 @@
         <p class="hint">Escolha um emoji para te representar no placar. Sorteamos um para começar.</p>
       </div>
       <button class="btn btn-primary btn-lg btn-block" type="submit" id="botao-entrar">Entrar</button>
+      <p class="hint" id="hint-login" style="display:none; text-align:center; margin-top:12px">
+        Tem conta? <a href="login.html" id="link-login-participante">Faça login</a> para guardar seus jogos no seu perfil.
+      </p>
     </form>
   </div>
 </div>
@@ -64,13 +81,53 @@
 <script type="module">
 import { chamarRpc } from './assets/js/supabase.js';
 import { salvarParticipante } from './assets/js/participante.js';
+import { lerSessao, limparSessao } from './assets/js/sessao.js';
 import { mostrarToast, parametrosDaUrl } from './assets/js/ui.js';
-import { montarSeletorEmoji } from './assets/js/avatar.js';
+import { montarSeletorEmoji, AVATAR_PADRAO } from './assets/js/avatar.js';
 
 const pinPrefill = parametrosDaUrl().get('pin');
 if (pinPrefill) document.getElementById('pin').value = pinPrefill;
 
-const seletor = montarSeletorEmoji(document.getElementById('seletor-avatar'));
+// Logado, o jogador pode vincular a participação à conta (aparece no perfil)
+// ou seguir como convidado. Apelido e avatar vêm pré-preenchidos da conta,
+// mas continuam editáveis — valem só para esta sala.
+const sessao = lerSessao();
+let modo = sessao ? 'conta' : 'convidado';
+
+const seletor = montarSeletorEmoji(document.getElementById('seletor-avatar'), {
+  selecionado: sessao?.avatarEmoji,
+});
+
+const abaConta = document.getElementById('aba-conta');
+const abaConvidado = document.getElementById('aba-convidado');
+
+function aplicarModo(novo) {
+  modo = novo;
+  abaConta.classList.toggle('btn-ghost', novo !== 'conta');
+  abaConvidado.classList.toggle('btn-ghost', novo !== 'convidado');
+  document.getElementById('hint-modo').textContent = novo === 'conta'
+    ? 'Este jogo vai aparecer no histórico do seu perfil.'
+    : 'Nada é vinculado à sua conta neste jogo.';
+}
+
+if (sessao) {
+  document.getElementById('bloco-conta').style.display = 'block';
+  document.getElementById('conta-rotulo').textContent =
+    `${sessao.avatarEmoji || AVATAR_PADRAO} ${sessao.username}`;
+  const campoApelido = document.getElementById('apelido');
+  if (!campoApelido.value) campoApelido.value = sessao.username;
+  abaConta.addEventListener('click', () => aplicarModo('conta'));
+  abaConvidado.addEventListener('click', () => aplicarModo('convidado'));
+  aplicarModo('conta');
+} else {
+  document.getElementById('hint-login').style.display = 'block';
+  // O href é montado no clique para levar junto o PIN já digitado.
+  document.getElementById('link-login-participante').addEventListener('click', (evento) => {
+    const pin = document.getElementById('pin').value.trim();
+    const destino = 'entrar.html' + (pin ? `?pin=${pin}` : '');
+    evento.currentTarget.href = 'login.html?next=' + encodeURIComponent(destino);
+  });
+}
 
 const form = document.getElementById('form-entrar');
 const botao = document.getElementById('botao-entrar');
@@ -85,23 +142,44 @@ form.addEventListener('submit', async (evento) => {
   botao.textContent = 'Entrando...';
   try {
     const avatar = seletor.selecionado();
+    const params = { p_pin: pin, p_nickname: apelido, p_avatar_emoji: avatar };
     let resultado;
-    try {
-      [resultado] = await chamarRpc('session_join', {
-        p_pin: pin,
-        p_nickname: apelido,
-        p_avatar_emoji: avatar,
-      });
-    } catch (erro) {
-      // Banco ainda sem a migração de avatares: entra sem avatar.
-      if (!/function/i.test(erro.message)) throw erro;
-      [resultado] = await chamarRpc('session_join', { p_pin: pin, p_nickname: apelido });
+    let vinculado = false;
+
+    if (modo === 'conta' && sessao?.sessionToken) {
+      try {
+        [resultado] = await chamarRpc('session_join', {
+          ...params,
+          p_session_token: sessao.sessionToken,
+        });
+        vinculado = true;
+      } catch (erro) {
+        if (/sess[aã]o expirada/i.test(erro.message)) {
+          mostrarToast('Sua sessão expirou — entrando como convidado.', 'error');
+          limparSessao();
+        } else if (!/function/i.test(erro.message)) {
+          throw erro; // erro real (apelido em uso, sala não existe...)
+        }
+        // Banco sem a migração 14 ou sessão expirada: segue como convidado.
+      }
     }
+
+    if (!resultado) {
+      try {
+        [resultado] = await chamarRpc('session_join', params);
+      } catch (erro) {
+        // Banco ainda sem a migração de avatares: entra sem avatar.
+        if (!/function/i.test(erro.message)) throw erro;
+        [resultado] = await chamarRpc('session_join', { p_pin: pin, p_nickname: apelido });
+      }
+    }
+
     salvarParticipante(resultado.session_id, {
       participantId: resultado.participant_id,
       joinSecret: resultado.join_secret,
       nickname: apelido,
       avatarEmoji: avatar,
+      linkedToAccount: vinculado,
     });
     window.location.href = `jogar.html?session=${resultado.session_id}`;
   } catch (erro) {

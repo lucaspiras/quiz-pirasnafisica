@@ -15,6 +15,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
 <link rel="stylesheet" href="assets/css/estilo.css">
+<script src="assets/js/tema.js"></script>
 <style>
   /* No celular, a linha de cada pergunta quebra em coluna para os botões caberem */
   @media (max-width: 560px) {
@@ -34,9 +35,12 @@
 </head>
 <body>
 <div class="container-wide">
-  <div class="row-between">
+  <div class="row-between cabecalho-pagina">
     <a class="brand" href="painel.html" style="margin-bottom:0"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
-    <a class="btn btn-ghost" href="painel.html">← Meus quizzes</a>
+    <div class="row">
+      <a class="btn btn-ghost" href="painel.html">← Meus quizzes</a>
+      <button class="btn btn-ghost" id="botao-tema" type="button" aria-label="Alternar tema">🌙</button>
+    </div>
   </div>
 
   <div id="carregando" class="empty">Carregando quiz...</div>
@@ -163,12 +167,62 @@
 
     <div class="card">
       <h3>Importar arquivo</h3>
-      <p>Envie um arquivo <code>.json</code> com uma lista de perguntas para adicionar todas de uma vez.</p>
+      <p>Se você já tem as perguntas escritas em outro lugar, dá para adicionar todas de uma vez enviando um arquivo <code>.json</code>.</p>
+
+      <details class="guia-json">
+        <summary>O que é um arquivo .json e como criar o seu</summary>
+        <p>
+          Um arquivo <code>.json</code> é um arquivo de <strong>texto comum</strong> — dá para criar e editar
+          no Bloco de Notas do Windows ou em qualquer editor de texto. A única diferença é que o conteúdo
+          segue um formato organizado, com colchetes e chaves, que o computador consegue ler sem se confundir.
+        </p>
+        <ol>
+          <li>Baixe o <strong>arquivo modelo</strong> no botão abaixo (ou copie o exemplo).</li>
+          <li>Abra o arquivo com o Bloco de Notas (botão direito → Abrir com → Bloco de Notas).</li>
+          <li>Edite as perguntas mantendo o formato: cada pergunta fica entre <code>{ }</code> e a lista toda entre <code>[ ]</code>, separadas por vírgula.</li>
+          <li>Salve (mantendo o final <code>.json</code> no nome) e envie o arquivo aqui embaixo.</li>
+        </ol>
+        <p>Exemplo com duas perguntas:</p>
+<pre class="bloco-codigo" id="modelo-json">[
+  {
+    "text": "Qual é a unidade de força no SI?",
+    "options": [
+      { "key": "a", "label": "Newton" },
+      { "key": "b", "label": "Joule" },
+      { "key": "c", "label": "Watt" },
+      { "key": "d", "label": "Pascal" }
+    ],
+    "correct_key": "a",
+    "points": 100,
+    "tags": ["Dinâmica"]
+  },
+  {
+    "text": "Um carro percorre 100 m em 5 s. Qual é a velocidade média?",
+    "options": [
+      { "key": "a", "label": "10 m/s" },
+      { "key": "b", "label": "20 m/s" }
+    ],
+    "correct_key": "b",
+    "points": 150,
+    "question_seconds": 30,
+    "tags": ["Cinemática"]
+  }
+]</pre>
+        <p class="hint">
+          Em cada pergunta: <code>text</code> é o enunciado, <code>options</code> são as alternativas
+          (de 2 a 4, cada uma com a letra em <code>key</code> e o texto em <code>label</code>) e
+          <code>correct_key</code> é a letra da alternativa correta — esses três são obrigatórios.
+          Os demais são opcionais: <code>points</code> (se não informar, vale 100),
+          <code>question_seconds</code> (tempo da pergunta; sem ele, usa o padrão do quiz),
+          <code>tags</code> (temas) e <code>media_url</code> + <code>media_type</code>
+          (<code>"image"</code> ou <code>"youtube"</code>) para pergunta com mídia.
+        </p>
+      </details>
+
+      <div class="row" style="margin:12px 0">
+        <button class="btn btn-ghost" id="botao-baixar-modelo" type="button">Baixar arquivo modelo</button>
+      </div>
       <input type="file" id="arquivo-importar" accept="application/json,.json">
-      <p class="hint" style="margin-top:8px">
-        Formato: um array de objetos <code>{ text, options: [{key,label}], correct_key, points, media_url, media_type, question_seconds, tags }</code>.
-        Só <code>text</code>, <code>options</code> e <code>correct_key</code> são obrigatórios.
-      </p>
     </div>
 
     <div class="card">
@@ -622,6 +676,16 @@ document.getElementById('botao-banco-importar').addEventListener('click', async 
     mostrarToast(erro.message, 'error');
     atualizarAcoesBanco();
   }
+});
+
+document.getElementById('botao-baixar-modelo').addEventListener('click', () => {
+  const conteudo = document.getElementById('modelo-json').textContent;
+  const blob = new Blob([conteudo], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'modelo-perguntas.json';
+  link.click();
+  URL.revokeObjectURL(link.href);
 });
 
 document.getElementById('arquivo-importar').addEventListener('change', async (evento) => {

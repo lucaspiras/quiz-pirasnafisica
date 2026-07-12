@@ -25,6 +25,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
 <link rel="stylesheet" href="assets/css/estilo.css">
+<script src="assets/js/tema.js"></script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-TY56KM22X8"></script>
 <script>
@@ -37,7 +38,10 @@
 </head>
 <body>
 <div class="container">
-  <a class="brand" href="index.html"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+  <div class="row-between cabecalho-pagina">
+    <a class="brand" href="index.html" style="margin-bottom:0"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+    <button class="btn btn-ghost" id="botao-tema" type="button" aria-label="Alternar tema">🌙</button>
+  </div>
 
   <div class="card">
     <div class="row" style="margin-bottom:16px">
@@ -106,8 +110,17 @@
 <script type="module">
 import { chamarRpc } from './assets/js/supabase.js';
 import { salvarSessao, PERGUNTAS_SECRETAS } from './assets/js/sessao.js';
-import { mostrarToast } from './assets/js/ui.js';
+import { mostrarToast, parametrosDaUrl } from './assets/js/ui.js';
 import { montarSeletorEmoji } from './assets/js/avatar.js';
+
+// Para onde ir depois de logar: o parâmetro ?next= permite voltar para a
+// página de origem (ex.: entrar.html?pin=123456). Só aceita caminho relativo
+// de página desta pasta — nunca URL absoluta (evita open redirect).
+function destinoAposLogin() {
+  const next = parametrosDaUrl().get('next');
+  if (next && /^[a-z0-9_-]+\.html(\?[^\s]*)?$/i.test(next)) return next;
+  return 'painel.html';
+}
 
 const abaEntrar = document.getElementById('aba-entrar');
 const abaCadastro = document.getElementById('aba-cadastro');
@@ -142,7 +155,7 @@ formEntrar.addEventListener('submit', async (evento) => {
       isAdmin: resultado.is_admin,
       avatarEmoji: resultado.avatar_emoji,
     });
-    window.location.href = 'painel.html';
+    window.location.href = destinoAposLogin();
   } catch (erro) {
     mostrarToast(erro.message, 'error');
   }
@@ -182,7 +195,7 @@ formCadastro.addEventListener('submit', async (evento) => {
       isAdmin: resultado.is_admin,
       avatarEmoji: resultado.avatar_emoji ?? avatar,
     });
-    window.location.href = 'painel.html';
+    window.location.href = destinoAposLogin();
   } catch (erro) {
     mostrarToast(erro.message, 'error');
   }

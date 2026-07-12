@@ -25,6 +25,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
 <link rel="stylesheet" href="assets/css/estilo.css">
+<script src="assets/js/tema.js"></script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-TY56KM22X8"></script>
 <script>
@@ -37,9 +38,12 @@
 </head>
 <body>
 <div class="container">
-  <div class="row-between" style="margin-bottom:28px">
+  <div class="row-between cabecalho-pagina">
     <a class="brand" href="index.html" style="margin-bottom:0"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
-    <a class="btn btn-ghost" href="login.html" id="link-login">Fazer login</a>
+    <div class="row">
+      <a class="btn btn-ghost" href="login.html" id="link-login">Fazer login</a>
+      <button class="btn btn-ghost" id="botao-tema" type="button" aria-label="Alternar tema">🌙</button>
+    </div>
   </div>
 
   <div class="hero">

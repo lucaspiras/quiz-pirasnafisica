@@ -202,6 +202,45 @@ end;
 $$;
 grant execute on function creator_recover_reset(text, text, text) to anon;
 
+-- Troca de senha estando logado (página de perfil). Diferente do
+-- creator_recover_reset (fluxo não autenticado, derruba tudo): aqui quem
+-- troca está presente e autenticado, então a sessão atual sobrevive e só os
+-- OUTROS aparelhos são desconectados (proteção contra sessão roubada).
+create or replace function creator_password_change(
+  p_session_token text,
+  p_current_password text,
+  p_new_password text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_creator_id uuid := creator_id_from_session(p_session_token);
+  v_creator creators%rowtype;
+begin
+  if char_length(coalesce(p_new_password, '')) < 8 then
+    raise exception 'A nova senha precisa ter pelo menos 8 caracteres.';
+  end if;
+
+  select * into v_creator from creators where id = v_creator_id;
+
+  if v_creator.password_hash <> extensions.crypt(p_current_password, v_creator.password_hash) then
+    raise exception 'Senha atual incorreta.';
+  end if;
+
+  update creators
+  set password_hash = extensions.crypt(p_new_password, extensions.gen_salt('bf'))
+  where id = v_creator_id;
+
+  delete from creator_sessions
+  where creator_id = v_creator_id
+    and token_hash <> extensions.digest(p_session_token, 'sha256');
+end;
+$$;
+grant execute on function creator_password_change(text, text, text) to anon;
+
 drop function if exists creator_my_quizzes(text);
 create or replace function creator_my_quizzes(p_session_token text)
 returns table (
@@ -228,3 +267,95 @@ begin
 end;
 $$;
 grant execute on function creator_my_quizzes(text) to anon;
+
+-- Histórico unificado para a página de perfil: devolve json
+-- {live: [...], practice: [...]} numa chamada só. A posição nos jogos ao vivo
+-- usa o mesmo agregado do session_scoreboard, excluindo expulsos do ranking
+-- (mesmo critério da página de resultado).
+create or replace function creator_my_participations(p_session_token text)
+returns json
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_creator_id uuid := creator_id_from_session(p_session_token);
+  v_result json;
+begin
+  select json_build_object(
+    'live', coalesce((
+      select json_agg(json_build_object(
+        'session_id', t.session_id,
+        'quiz_title', t.quiz_title,
+        'nickname', t.nickname,
+        'avatar_emoji', t.avatar_emoji,
+        'played_at', t.played_at,
+        'session_status', t.status,
+        'total_points', t.total_points,
+        'correct_count', t.correct_count,
+        'position', t.position,
+        'participants_count', t.participants_count,
+        'was_kicked', t.was_kicked
+      ) order by t.played_at desc)
+      from (
+        with mine as (
+          select p.id as participant_id, p.session_id, p.nickname,
+                 p.avatar_emoji, p.is_kicked
+          from participant_accounts pa
+          join participants p on p.id = pa.participant_id
+          where pa.creator_id = v_creator_id
+        ),
+        placar as (
+          select p.session_id, p.id as participant_id,
+                 coalesce(sum(a.points_awarded) filter (where a.counted), 0)::bigint as total_points,
+                 coalesce(count(*) filter (where a.counted and a.is_correct), 0)::bigint as correct_count,
+                 rank() over (
+                   partition by p.session_id
+                   order by coalesce(sum(a.points_awarded) filter (where a.counted), 0) desc,
+                            coalesce(count(*) filter (where a.counted and a.is_correct), 0) desc
+                 ) as position,
+                 count(*) over (partition by p.session_id) as participants_count
+          from participants p
+          left join answers a on a.participant_id = p.id
+          where p.session_id in (select session_id from mine)
+            and not p.is_kicked
+          group by p.session_id, p.id
+        )
+        select m.session_id, q.title as quiz_title, m.nickname, m.avatar_emoji,
+               coalesce(gs.ended_at, gs.created_at) as played_at, gs.status,
+               coalesce(pl.total_points, 0) as total_points,
+               coalesce(pl.correct_count, 0) as correct_count,
+               pl.position, pl.participants_count,
+               m.is_kicked as was_kicked
+        from mine m
+        join game_sessions gs on gs.id = m.session_id
+        join quizzes q on q.id = gs.quiz_id
+        left join placar pl on pl.participant_id = m.participant_id
+        order by coalesce(gs.ended_at, gs.created_at) desc
+        limit 50
+      ) t
+    ), '[]'::json),
+    'practice', coalesce((
+      select json_agg(json_build_object(
+        'quiz_id', pp.quiz_id,
+        'quiz_title', q.title,
+        'score', pp.score,
+        'correct_count', pp.correct_count,
+        'total_count', pp.total_count,
+        'duration_ms', pp.duration_ms,
+        'played_at', pp.played_at
+      ) order by pp.played_at desc)
+      from (
+        select * from practice_plays
+        where creator_id = v_creator_id
+        order by played_at desc
+        limit 50
+      ) pp
+      join quizzes q on q.id = pp.quiz_id
+    ), '[]'::json)
+  ) into v_result;
+
+  return v_result;
+end;
+$$;
+grant execute on function creator_my_participations(text) to anon;

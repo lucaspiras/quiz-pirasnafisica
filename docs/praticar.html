@@ -25,6 +25,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap">
 <link rel="stylesheet" href="assets/css/estilo.css">
+<script src="assets/js/tema.js"></script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-TY56KM22X8"></script>
 <script>
@@ -37,7 +38,10 @@
 </head>
 <body>
 <div class="container">
-  <a class="brand" href="index.html"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+  <div class="row-between cabecalho-pagina">
+    <a class="brand" href="index.html" style="margin-bottom:0"><img src="assets/img/explosao_transparente.png" alt=""><span class="brand-nome">quiz.pirasnafisica</span></a>
+    <button class="btn btn-ghost" id="botao-tema" type="button" aria-label="Alternar tema">🌙</button>
+  </div>
   <div id="tela"><div class="empty">Carregando quiz...</div></div>
 </div>
 
@@ -242,6 +246,20 @@ function renderResultado() {
     try { localStorage.setItem(CHAVE_RECORDE, JSON.stringify({ pontos: pontosTotais, acertos, total })); } catch {}
   }
 
+  // Histórico no servidor (só logado): grava sem travar a tela de resultado.
+  // Se o banco ainda não tem a migração 14 ou a sessão expirou, segue em
+  // silêncio — o recorde local acima continua funcionando.
+  if (sessao?.sessionToken) {
+    chamarRpc('practice_play_record', {
+      p_session_token: sessao.sessionToken,
+      p_quiz_id: quizId,
+      p_score: pontosTotais,
+      p_correct_count: acertos,
+      p_total_count: total,
+      p_duration_ms: Math.round(tempoTotalMs),
+    }).catch(() => {});
+  }
+
   tela.innerHTML = `
     <div class="card" style="text-align:center">
       <div class="trofeu-hero">${premio.trofeu}</div>
@@ -259,6 +277,11 @@ function renderResultado() {
         ${novoRecorde
           ? '🎉 Novo recorde pessoal neste navegador!'
           : `Seu recorde neste navegador: <strong>${recorde.pontos} pts</strong> (${recorde.acertos}/${recorde.total})`}
+      </p>
+      <p class="hint" style="margin-top:6px">
+        ${sessao
+          ? '📒 Tentativa salva no seu histórico — <a href="perfil.html">ver perfil</a>.'
+          : `Faça <a href="login.html?next=${encodeURIComponent(`praticar.html?quiz=${quizId}`)}">login</a> para guardar seu histórico de prática.`}
       </p>
     </div>
 

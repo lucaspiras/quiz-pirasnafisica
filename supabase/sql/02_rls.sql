@@ -13,6 +13,8 @@ alter table participants enable row level security;
 alter table session_state enable row level security;
 alter table session_hosts enable row level security;
 alter table participant_secrets enable row level security;
+alter table participant_accounts enable row level security;
+alter table practice_plays enable row level security;
 
 -- Estas três tabelas nunca guardam segredos nem o gabarito, então podem ser
 -- lidas diretamente por qualquer um — necessário para o Realtime entregar

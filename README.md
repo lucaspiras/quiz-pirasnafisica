@@ -19,7 +19,7 @@ Supabase como único backend.
 ### Instalação nova (projeto Supabase vazio)
 
 1. Crie um projeto em [supabase.com](https://supabase.com) (plano gratuito é suficiente para começar).
-2. No **SQL Editor** do projeto, rode os arquivos de `supabase/sql/` **nesta ordem** (pule o `09`, o `12` e o `13`, que são só migrações para bancos já existentes):
+2. No **SQL Editor** do projeto, rode os arquivos de `supabase/sql/` **nesta ordem** (pule o `09`, o `12`, o `13` e o `14`, que são só migrações para bancos já existentes):
    `01_schema.sql` → `02_rls.sql` → `03_rpc_creators.sql` → `04_rpc_quizzes.sql` → `05_rpc_sessions.sql` → `06_rpc_gameplay.sql` → `07_rpc_scoreboard.sql` → `08_realtime_publication.sql` → `10_rpc_bank.sql` → `11_rpc_admin.sql`.
 3. Em **Configurações → API**, copie a **Project URL** e a chave **anon/public**.
 4. Cole esses dois valores em [`docs/assets/js/config.js`](docs/assets/js/config.js).
@@ -49,6 +49,26 @@ a coluna `source_question_id` em `quiz_questions`, troca a importação do banco
 público para o modo em massa (várias perguntas de uma vez) e faz o banco
 esconder perguntas já importadas — e não devolver cópias importadas ao banco
 quando o quiz que as recebeu vira público. Instalações novas não precisam dele.
+
+### Banco já rodando, sem perfil/histórico/login de participante (versão anterior a jul/2026)
+
+Rode **somente** `14_migracao_perfil_e_historico.sql`, uma única vez, **fora de
+horário de jogo ao vivo** (a função de entrar na sala é recriada e fica
+indisponível por instantes). Ele adiciona: a página de perfil (trocar senha
+logado e histórico), o vínculo opcional participante ↔ conta ao entrar numa
+sala, o histórico pessoal do modo praticar e a correção da contagem de
+perguntas nos quizzes públicos (saía dobrada). Instalações novas não precisam
+dele (os arquivos canônicos já incluem tudo).
+
+Sanidade depois de rodar:
+
+```sql
+select proname from pg_proc
+where proname in ('creator_password_change', 'creator_my_participations', 'practice_play_record');
+-- deve devolver 3 linhas
+select count(*) from pg_proc where proname = 'session_join';
+-- deve devolver 1 (sem overload antigo)
+```
 
 ### Semente inicial do banco de perguntas
 
@@ -90,3 +110,10 @@ Depois acesse `http://localhost:3000` (ou a porta indicada).
 - Sem moderação de apelido de participante além do limite de tamanho e do botão de expulsar do host.
 - Sem rate limiting além do padrão do Supabase — aceitável na escala inicial.
 - `is_admin` é um flag manual (Table Editor), sem tela de gestão de admins.
+- Apelido de participante não é identidade verificada: um convidado pode usar
+  o nome de usuário de outra pessoa como apelido (a unicidade é só por sala).
+- O histórico do perfil morre com o quiz: excluir um quiz apaga em cascata as
+  sessões, participações e tentativas de prática ligadas a ele.
+- A pontuação do modo praticar é calculada no navegador (o gabarito chega ao
+  cliente), então o histórico pessoal é fraudável pelo próprio usuário — por
+  isso não existe (nem deve existir) ranking público de prática.

@@ -1,11 +1,12 @@
 -- Schema do sistema de quiz ao vivo (quiz.pirasnafisica.com.br)
 -- Instalação nova: rode 01, 02, 03, 04, 05, 06, 07, 08, 10, 11 nessa ordem
--- (pule o 09, o 12 e o 13, que são migrações para bancos já existentes).
+-- (pule o 09, o 12, o 13 e o 14, que são migrações para bancos já existentes).
 -- Banco já existente (rodou até o 08 antes desta versão): rode 04 de novo
 -- (create or replace), depois 09, 10, 11.
 -- Banco já existente sem avatares/prática com bônus: rode só o 12.
 -- Banco já existente sem rastreio de origem das perguntas importadas:
 -- rode o 13 e depois o 10 de novo.
+-- Banco já existente sem perfil/histórico/login de participante: rode só o 14.
 
 create extension if not exists pgcrypto with schema extensions;
 
@@ -157,6 +158,17 @@ create table participant_secrets (
   join_secret_hash  bytea not null
 );
 
+-- Vínculo participante ↔ conta (quando o jogador entra logado). Fica FORA de
+-- participants pelo mesmo motivo dos segredos: participants é lida por anon
+-- via Realtime (linha inteira), e creator_id ali viraria um mapa público de
+-- qual conta usa qual apelido em cada sala. Sem policies — só via RPC.
+create table participant_accounts (
+  participant_id  uuid primary key references participants(id) on delete cascade,
+  creator_id      uuid not null references creators(id) on delete cascade,
+  linked_at       timestamptz not null default now()
+);
+create index participant_accounts_creator_idx on participant_accounts(creator_id);
+
 create table answers (
   id              uuid primary key default gen_random_uuid(),
   session_id      uuid not null references game_sessions(id) on delete cascade,
@@ -170,3 +182,21 @@ create table answers (
   answered_at     timestamptz not null default now(),
   unique (session_id, question_id, participant_id)
 );
+
+-- Histórico pessoal do modo praticar. A pontuação é calculada no navegador e
+-- o gabarito chega ao cliente, então este número é fraudável — por isso NUNCA
+-- vira ranking público: só o próprio dono vê (via RPC). O servidor guarda no
+-- máximo as 20 tentativas mais recentes por (conta, quiz).
+create table practice_plays (
+  id             uuid primary key default gen_random_uuid(),
+  creator_id     uuid not null references creators(id) on delete cascade,
+  quiz_id        uuid not null references quizzes(id) on delete cascade,
+  score          int not null check (score >= 0),
+  correct_count  int not null check (correct_count >= 0),
+  total_count    int not null check (total_count >= 1),
+  duration_ms    bigint check (duration_ms is null or duration_ms >= 0),
+  played_at      timestamptz not null default now(),
+  constraint practice_plays_counts_check check (correct_count <= total_count)
+);
+create index practice_plays_creator_idx on practice_plays(creator_id, played_at desc);
+create index practice_plays_creator_quiz_idx on practice_plays(creator_id, quiz_id, played_at desc);
